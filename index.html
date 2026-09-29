@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ryan's Mall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&display=swap" rel="stylesheet">
+<!-- QRCode generator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- jsQR scanner engine (jsDelivr CDN) with fallback -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+  if (typeof jsQR === 'undefined') {
+    document.write('<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"><\/script>');
+  }
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --cream:#FBF6EC;
+    --chalk:#2B3A3A;
+    --yellow:#F6C445;
+    --red:#E4572E;
+    --green:#4C9A6A;
+    --blue:#4FA6D8;
+    --white:#FFFDF8;
+    --line:#2B3A3A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    background-image:radial-gradient(circle, rgba(43,58,58,0.08) 1px, transparent 1px);
+    background-size:20px 20px;
+    font-family:'Comic Neue',sans-serif;
+    color:var(--chalk);
+    padding:24px;
+    font-size:18px;
+  }
+  h1,h2,h3,.display{font-family:'Comic Neue',cursive;margin:0;font-weight:700;}
+  
+  .wrap{
+    max-width:900px;
+    margin:0 auto;
+    transition: all 0.2s ease;
+  }
+
+  .banner{display:flex;justify-content:center;gap:8px;margin-bottom:-4px;}
+  .flag{width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-top:26px solid var(--red);}
+  .flag:nth-child(2n){border-top-color:var(--blue);}
+  .flag:nth-child(3n){border-top-color:var(--green);}
+  .flag:nth-child(4n){border-top-color:var(--yellow);}
+
+  header{background:var(--chalk);border-radius:22px;padding:26px 30px;text-align:center;color:var(--cream);border:4px solid var(--line);}
+  header h1{font-size:46px;color:var(--yellow);letter-spacing:0.5px;cursor:default;user-select:none;}
+  header p{margin:8px 0 0;font-size:20px;opacity:0.85;}
+
+  nav.tabs{display:flex;gap:14px;margin:22px 0;flex-wrap:wrap;}
+  nav.tabs button{
+    flex:1 1 auto;min-width:140px;font-family:'Comic Neue',cursive;font-weight:700;font-size:28px;
+    padding:16px 20px;border:4px solid var(--line);border-radius:20px;
+    background:var(--white);color:var(--chalk);cursor:pointer;box-shadow:4px 4px 0 var(--line);
+  }
+  nav.tabs button.active{background:var(--yellow);transform:translate(2px,2px);box-shadow:2px 2px 0 var(--line);}
+  nav.tabs button:active{transform:translate(4px,4px);box-shadow:none;}
+
+  section{display:none;}
+  section.active{display:block;}
+
+  .card{
+    background:var(--white);border:4px solid var(--line);border-radius:20px;
+    padding:26px;margin-bottom:22px;box-shadow:5px 5px 0 rgba(43,58,58,0.15);
+  }
+  .card h2{font-size:28px;margin-bottom:12px;}
+  .hint{font-size:16px;opacity:0.75;margin:4px 0 14px;}
+
+  label{display:block;font-weight:700;font-size:16px;margin:14px 0 6px;}
+  input[type=text], input[type=number], input[type=password], input[type=file], textarea{
+    width:100%;padding:14px 16px;border:3px solid var(--line);border-radius:12px;
+    font-family:'Comic Neue',sans-serif;font-size:20px;background:var(--cream);
+  }
+  textarea{resize:vertical;min-height:100px;}
+  input[type=file]{padding:10px;}
+  select{
+    width:100%;padding:14px 16px;border:3px solid var(--line);border-radius:12px;
+    font-family:'Comic Neue',sans-serif;font-size:20px;background:var(--cream);
+  }
+  .row{display:flex;gap:14px;}
+  .row > *{flex:1;}
+
+  button.btn{
+    font-family:'Comic Neue',cursive;font-weight:700;font-size:22px;padding:14px 22px;
+    border:4px solid var(--line);border-radius:16px;cursor:pointer;
+    background:var(--green);color:var(--white);box-shadow:4px 4px 0 rgba(43,58,58,0.3);margin-top:16px;
+  }
+  button.btn:active{transform:translate(2px,2px);box-shadow:none;}
+  button.btn.secondary{background:var(--blue);}
+  button.btn.danger{background:var(--red);}
+  button.btn.ghost{background:var(--white);color:var(--chalk);}
+  button.btn:disabled{opacity:0.5;cursor:not-allowed;}
+  button.btn.small{font-size:16px;padding:8px 16px;margin-top:0;}
+
+  .thumb{border-radius:12px;object-fit:contain;display:block;background:var(--white);border:3px solid var(--line);flex-shrink:0;}
+  .thumb-sm{width:46px;height:46px;}
+  .thumb-md{width:130px;height:130px;margin:0 auto;border-radius:16px;}
+  .thumb-lg{width:200px;height:200px;margin:0 auto;border-radius:22px;}
+  .thumb-tiny{width:42px;height:42px;border-radius:10px;}
+
+  .image-pickable{cursor:pointer;}
+  .image-pickable:focus, .image-pickable.active-target{outline:4px solid var(--blue);outline-offset:3px;}
+  .image-slot{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    border:3px dashed var(--line);border-radius:16px;padding:16px;cursor:pointer;
+    background:var(--cream);margin-top:6px;
+  }
+  .image-slot .hint{margin:0;font-size:14px;}
+
+  .editable-text{cursor:text;border-bottom:3px dotted transparent;}
+  .editable-text:hover{border-bottom-color:var(--blue);}
+  input.inline-edit-input{
+    width:auto;min-width:80px;display:inline-block;padding:6px 10px;font-size:inherit;
+    font-family:inherit;font-weight:inherit;border:3px solid var(--blue);border-radius:8px;background:var(--white);
+  }
+
+  .shop-ticket{
+    display:flex;align-items:center;gap:14px;border:3px solid var(--line);border-radius:16px;
+    padding:14px 16px;margin-bottom:12px;background:var(--cream);cursor:pointer;
+  }
+  .shop-ticket.selected{background:var(--yellow);}
+  .shop-ticket .info{flex:1;}
+  .shop-ticket .info .name{font-weight:800;font-family:'Comic Neue',cursive;font-size:22px;}
+  .shop-ticket .info .count{font-size:15px;opacity:0.7;}
+  .shop-ticket button.del{border:none;background:none;color:var(--red);font-size:24px;cursor:pointer;}
+  .shop-ticket button.toggle-hide{border:none;background:none;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;}
+  
+  .reorder-btns{display:flex;flex-direction:column;gap:4px;}
+  button.order-btn{
+    border:2px solid var(--line);background:var(--white);border-radius:8px;
+    cursor:pointer;font-size:14px;padding:2px 8px;font-weight:800;
+  }
+
+  .item-ticket{
+    display:flex;align-items:flex-start;gap:12px;border:3px dashed var(--line);border-radius:16px;
+    padding:14px 16px;margin-bottom:12px;background:var(--cream);
+  }
+  .item-ticket .info{flex:1;}
+  .item-ticket .info .name{font-weight:800;font-family:'Comic Neue',cursive;font-size:22px;}
+  .item-ticket .info .price{font-size:18px;color:var(--red);font-weight:700;}
+  .item-ticket button.del{border:none;background:none;color:var(--red);font-size:24px;cursor:pointer;}
+  .item-ticket button.toggle-hide{border:none;background:none;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;}
+
+  .variant-setup-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .variant-setup-card{
+    display:flex;align-items:center;gap:6px;background:var(--white);
+    border:2px solid var(--line);border-radius:10px;padding:4px 8px;font-size:15px;
+  }
+  .variant-setup-card .vname{font-weight:700;}
+  .variant-setup-card .del-v-btn{
+    border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;font-weight:800;padding:0 2px;line-height:1;
+  }
+
+  .item-menu-variants{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px;}
+  .item-menu-badge{
+    font-size:12px;font-weight:800;padding:2px 8px;border-radius:8px;
+    background:var(--white);border:2px solid var(--line);color:var(--chalk);
+  }
+
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  @media (min-width: 768px) {
+    .item-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .item-card{
+    border:4px solid var(--line);border-radius:20px;background:var(--cream);
+    text-align:center;padding:22px 14px;cursor:pointer;box-shadow:5px 5px 0 rgba(43,58,58,0.2);
+  }
+  .item-card:active{transform:translate(3px,3px);box-shadow:none;}
+  .item-card .name{font-family:'Comic Neue',cursive;font-weight:700;font-size:24px;margin-top:14px;line-height:1.15;}
+  .item-card .price{font-size:20px;color:var(--red);font-weight:800;margin-top:6px;}
+
+  .shop-chip{
+    display:flex;align-items:center;gap:16px;border:4px solid var(--line);border-radius:20px;
+    padding:16px 20px;background:var(--yellow);cursor:pointer;box-shadow:5px 5px 0 rgba(43,58,58,0.2);
+    margin-bottom:8px;
+  }
+  .shop-chip:active{transform:translate(3px,3px);box-shadow:none;}
+  .shop-chip .name{flex:1;font-family:'Comic Neue',cursive;font-weight:700;font-size:26px;}
+  .shop-chip .change-hint{font-size:18px;font-weight:700;opacity:0.75;white-space:nowrap;}
+
+  /* Embedded Bottom Mode Layout - Strictly Vertical Stack */
+  .order-tray {
+    border: 4px solid var(--line);
+    border-radius: 20px;
+    background: var(--cream);
+    padding: 20px;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    position: static;
+    width: 100%;
+    box-shadow: none;
+  }
+  .order-tray #order-items-list {
+    max-height: none;
+    overflow-y: visible;
+    margin-bottom: 12px;
+  }
+
+  /* Fixed Side Panel Layout */
+  .floating-order-panel {
+    display: flex;
+    flex-direction: column;
+    width: 280px;
+    background: var(--white);
+    border: 5px solid var(--line);
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: 6px 6px 0 rgba(43,58,58,0.25);
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 90;
+    max-height: 85vh;
+  }
+  .floating-order-panel.pos-left { left: 20px; }
+  .floating-order-panel.pos-right { right: 20px; }
+
+  .floating-order-panel h3 { font-size: 22px !important; }
+  .floating-order-panel .cart-total { font-size: 24px !important; }
+  .floating-order-panel button.btn { font-size: 18px !important; padding: 10px; }
+  .floating-order-panel #order-items-list {
+    max-height: 45vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .order-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:2px dashed rgba(43,58,58,0.2);
+    font-size:16px;
+    font-weight:700;
+    flex-wrap: nowrap;
+  }
+  .order-item .name{
+    flex:1;
+    min-width:0;
+    line-height:1.2;
+    word-break:break-word;
+  }
+  .order-item .qty-controls{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .order-item button.qty-btn{
+    width:28px;
+    height:28px;
+    font-size:16px;
+    font-weight:800;
+    border:2px solid var(--line);
+    border-radius:8px;
+    background:var(--white);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .variant-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:18px;
+  }
+  .variant-card{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    font-family:'Comic Neue',cursive;font-weight:700;font-size:18px;padding:12px 8px;
+    border:3px solid var(--line);border-radius:16px;background:var(--white);
+    color:var(--chalk);cursor:pointer;box-shadow:3px 3px 0 var(--line);
+  }
+  .variant-card:active{transform:translate(2px,2px);box-shadow:none;}
+
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(43,58,58,0.75);
+    align-items:center;justify-content:center;z-index:100;padding:24px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal-close{
+    position:absolute;top:14px;right:14px;background:var(--chalk);color:var(--white);
+    border:none;border-radius:50%;width:42px;height:42px;font-size:22px;cursor:pointer;
+  }
+  .stall-sign{
+    position:relative;text-align:center;background:var(--yellow);border:4px solid var(--line);
+    border-radius:24px;padding:36px;max-width:480px;width:100%;
+  }
+  .stall-sign .name-big{font-size:36px;font-family:'Comic Neue',cursive;font-weight:700;margin-top:8px;line-height:1.1;}
+  .stall-sign .price-big{
+    display:inline-block;margin-top:14px;background:var(--red);color:var(--white);
+    font-family:'Comic Neue',cursive;font-weight:700;padding:8px 26px;border-radius:28px;font-size:32px;
+  }
+  #qrcode-box{display:flex;justify-content:center;margin:22px 0 14px;background:white;padding:16px;border-radius:16px;}
+  #qrcode-box canvas, #qrcode-box img{width:240px !important;height:240px !important;}
+
+  #pin-input{text-align:center;font-size:28px;letter-spacing:10px;margin-top:14px;}
+  #pin-error{color:var(--red);font-weight:700;min-height:22px;margin-top:10px;font-size:16px;}
+
+  #toast{
+    display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--chalk);color:var(--cream);padding:16px 28px;border-radius:18px;
+    font-family:'Comic Neue',cursive;font-weight:700;font-size:20px;z-index:200;
+    box-shadow:5px 5px 0 rgba(0,0,0,0.3);max-width:88%;text-align:center;border:4px solid var(--yellow);
+  }
+
+  #tab-shop input[type=text], #tab-shop select{font-size:22px;padding:16px;}
+  #tab-shop button.btn{font-size:22px;padding:18px 16px;}
+  #tab-shop button.btn .icon{font-size:32px;display:block;line-height:1;margin-bottom:4px;}
+  video{
+    width:100%;
+    max-height:400px;
+    object-fit:cover;
+    border-radius:16px;
+    border:4px solid var(--line);
+    background:#000;
+  }
+  canvas{display:none;}
+  .scan-msg{text-align:center;font-weight:800;font-size:22px;padding:16px;background:var(--cream);border-radius:14px;margin-top:14px;min-height:32px;}
+  
+  .cart-item{display:flex;align-items:center;gap:16px;padding:14px 8px;border-bottom:3px dashed rgba(43,58,58,0.2);font-size:22px;}
+  .cart-item .thumb{width:56px;height:56px;border-radius:12px;}
+  .cart-item .name{flex:1;font-weight:800;font-family:'Comic Neue',cursive;}
+  .cart-item .price{font-weight:800;color:var(--red);}
+  .cart-item .qty-badge{
+    font-weight:800;font-family:'Comic Neue',cursive;background:var(--yellow);
+    border:2px solid var(--line);border-radius:10px;padding:2px 10px;font-size:18px;
+  }
+  .cart-item button.del-item{
+    border:none;background:none;color:var(--red);cursor:pointer;font-size:26px;font-weight:800;padding:6px 12px;border-radius:8px;
+  }
+  .cart-item button.del-item:hover{background:rgba(228,87,46,0.1);}
+  .cart-total{
+    display:flex;justify-content:space-between;align-items:center;font-family:'Comic Neue',cursive;font-weight:700;
+    font-size:32px;margin-top:14px;border-top:4px solid var(--line);padding-top:16px;
+  }
+  #basket-count{font-size:18px;padding:4px 12px;}
+
+  table{width:100%;border-collapse:collapse;font-size:18px;}
+  th,td{text-align:left;padding:12px;border-bottom:3px solid var(--cream);}
+  th{font-family:'Comic Neue',cursive;font-weight:700;background:var(--chalk);color:var(--cream);font-size:20px;}
+  tr:nth-child(even){background:var(--cream);}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;background:var(--white);
+    border:3px solid var(--line);border-radius:12px;padding:4px 10px;margin:3px;font-size:16px;
+  }
+  .pill-x{border:none;background:none;color:var(--red);cursor:pointer;font-weight:800;padding:0;font-size:16px;}
+  .del-student-btn{border:none;background:none;color:var(--red);cursor:pointer;font-size:24px;}
+
+  .loading{text-align:center;padding:24px;opacity:0.6;font-weight:700;}
+  .empty{text-align:center;padding:24px;opacity:0.6;}
+  .badge{display:inline-block;background:var(--blue);color:white;border-radius:10px;padding:3px 10px;font-size:14px;font-weight:800;margin-left:8px;}
+  .badge.hidden-badge{background:var(--red);}
+
+  .user-badge{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--yellow);border:3px solid var(--line);border-radius:16px;
+    padding:10px 16px;font-weight:800;font-size:20px;margin-bottom:14px;
+  }
+
+  /* Full Screen Authentication Gate Overlay */
+  #auth-gate-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: var(--cream);
+    background-image: radial-gradient(circle, rgba(43,58,58,0.08) 1px, transparent 1px);
+    background-size: 20px 20px;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px;
+  }
+</style>
+</head>
+<body>
+
+<!-- FULL SCREEN LOGIN GATE -->
+<div id="auth-gate-overlay">
+  <div class="stall-sign" style="max-width:440px;">
+    <div class="name-big" style="font-size:42px;">🛍️ Welcome!</div>
+    <p class="hint" style="font-size:22px;margin:16px 0 24px;">Please sign in with your Chromebook account to start shopping.</p>
+    <button class="btn secondary" id="gate-signin-btn" style="width:100%;font-size:24px;padding:18px;">
+      🔑 Sign in with Google
+    </button>
+  </div>
+</div>
+
+<div class="wrap" id="main-wrap">
+  <div class="banner">
+    <div class="flag"></div><div class="flag"></div><div class="flag"></div>
+    <div class="flag"></div><div class="flag"></div><div class="flag"></div><div class="flag"></div>
+  </div>
+  <header>
+    <h1 id="app-title">⭐ Let's go shopping! ⭐</h1>
+    <p id="app-subtitle">What would you like?</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="sell" class="active">🏪 Sell</button>
+    <button data-tab="shop">🧺 Shop</button>
+    <button data-tab="class" id="class-tab-btn" style="display:none;">📋 Class List</button>
+    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️ Setup</button>
+  </nav>
+
+  <!-- SELL TAB -->
+  <section id="tab-sell" class="active">
+    <div class="card">
+      <h2>Run a stall</h2>
+      <p class="hint">Pick your shop, tap items to build the customer's order, then finish to show the QR code.</p>
+      
+      <div id="sell-shop-current" style="display:none;"></div>
+      <div id="sell-shop-picker" class="item-grid"></div>
+      <div id="sell-grid" class="item-grid"></div>
+
+      <!-- Bottom Embedded Tray Slot -->
+      <div id="embedded-order-tray-slot"></div>
+    </div>
+  </section>
+
+  <!-- SHOP TAB -->
+  <section id="tab-shop">
+    <div class="card">
+      <h2>🧺 Shop</h2>
+      
+      <!-- Google Auth Account Banner -->
+      <div id="auth-signed-in" style="display:none;" class="user-badge">
+        <span>👤 <span id="auth-user-name">Student Name</span></span>
+        <button class="btn ghost small" id="google-signout-btn">Switch Account</button>
+      </div>
+
+      <div id="shopper-input-text-container" style="display:none;">
+        <input type="text" id="shopper-name-input" placeholder="🙋 Your name">
+      </div>
+      <div id="shopper-input-select-container" style="display:none;">
+        <select id="shopper-name-select">
+          <option value="">🙋 Select your name...</option>
+        </select>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="start-scan-btn"><span class="icon">📷</span>Scan</button>
+        <button class="btn secondary" id="manual-entry-btn" style="display:none;"><span class="icon">⌨️</span>Code</button>
+      </div>
+      <div id="manual-entry-row" style="display:none;margin-top:12px;">
+        <input type="text" id="manual-code" placeholder="SHOP-ORDER:apple01,pencil01">
+        <button class="btn" id="manual-submit-btn">➕ Add</button>
+      </div>
+      <div id="camera-area" style="display:none;margin-top:12px;">
+        <video id="scan-video" playsinline muted></video>
+        <canvas id="scan-canvas"></canvas>
+        <button class="btn ghost" id="stop-scan-btn" style="width:100%;">✋ Stop</button>
+      </div>
+      <div class="scan-msg" id="scan-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>🧺 My Basket <span class="badge" id="basket-count">0</span></h2>
+      <div id="cart-list"><p class="empty">🧺 Empty</p></div>
+      <div class="cart-total"><span>💰</span><span id="cart-total-amt">$0</span></div>
+    </div>
+  </section>
+
+  <!-- CLASS LIST TAB -->
+  <section id="tab-class">
+    <div class="card">
+      <h2>Class shopping list</h2>
+      <p class="hint">Everyone's saved baskets, all in one place.</p>
+      <div id="class-list"><p class="loading">Loading&hellip;</p></div>
+      <button class="btn ghost" id="refresh-class-btn">🔄 Refresh</button>
+    </div>
+  </section>
+
+  <!-- SETUP TAB -->
+  <section id="tab-setup">
+    <div class="card">
+      <h2>🔒 Security</h2>
+      <p class="hint">Tap the market title 5 times to get back in here later. Change the PIN any time.</p>
+      <div class="row">
+        <div>
+          <label for="change-pin">Setup PIN</label>
+          <input type="text" id="change-pin" inputmode="numeric" placeholder="New PIN">
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn secondary small" id="save-pin-btn">Save PIN</button>
+        <button class="btn ghost small" id="lock-setup-btn">🔒 Lock</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⚙️ Settings</h2>
+      <label for="currency-select">Currency</label>
+      <select id="currency-select">
+        <option value="USD">$ Dollars</option>
+        <option value="JPY">¥ Yen</option>
+      </select>
+
+      <label for="order-position-select" style="margin-top:18px;">Current Order Window Position</label>
+      <select id="order-position-select">
+        <option value="auto">⚡ Auto (Fixed left for wide screens, Bottom for small screens)</option>
+        <option value="left">⬅️ Always Fixed Left</option>
+        <option value="right">➡️ Always Fixed Right</option>
+        <option value="bottom">⬇️ Always Bottom Embedded</option>
+      </select>
+
+      <label for="name-mode-select" style="margin-top:18px;">Name Entry Mode</label>
+      <select id="name-mode-select">
+        <option value="device">💻 Auto Device ID (No login/selection needed)</option>
+        <option value="google">🔑 Auto Google SSO (Chromebook Accounts)</option>
+        <option value="text">✍️ Text Input ("Enter your name")</option>
+        <option value="list">📋 Dropdown List (Select from list)</option>
+      </select>
+
+      <div id="name-list-setting-row" style="display:none;margin-top:12px;">
+        <label for="name-list-input">Student Names List (one per line)</label>
+        <textarea id="name-list-input" placeholder="Alex&#10;Sam&#10;Taylor&#10;Jordan"></textarea>
+        <button class="btn secondary small" id="save-names-btn">Save Name List</button>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:10px;margin-top:18px;cursor:pointer;">
+        <input type="checkbox" id="budget-enabled" style="width:auto;transform:scale(1.3);">
+        <span>Limit how much each student can spend</span>
+      </label>
+      <div id="budget-amount-row" style="display:none;margin-top:10px;">
+        <label for="budget-amount">Max amount</label>
+        <input type="number" id="budget-amount" min="0" step="1" placeholder="2000">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🏷️ Branding</h2>
+      <p class="hint">Tap the title or subtitle to rename your market.</p>
+      <div class="item-ticket" style="cursor:default;">
+        <div class="info">
+          <div class="hint" style="margin:0 0 2px;">Title</div>
+          <div class="name editable-text" id="edit-app-title" tabindex="0">⭐ Let's go shopping! ⭐</div>
+        </div>
+      </div>
+      <div class="item-ticket" style="cursor:default;">
+        <div class="info">
+          <div class="hint" style="margin:0 0 2px;">Subtitle</div>
+          <div class="name editable-text" id="edit-app-subtitle" tabindex="0" style="font-size:18px;">What would you like?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Shops</h2>
+      <p class="hint">Tap ▲ ▼ to reorder shops. Tap pictures or names to edit. Tap 👁️ to hide/show.</p>
+      <div id="shop-list"><p class="loading">Loading shops&hellip;</p></div>
+      <label>Shop image</label>
+      <div class="image-slot image-pickable" id="new-shop-image-slot" tabindex="0" data-kind="new-shop">
+        <img class="thumb thumb-md" id="new-shop-image-preview" alt="">
+        <div class="hint">📁 Click or 📋 Paste image</div>
+      </div>
+      <label for="new-shop-name">New shop name</label>
+      <input type="text" id="new-shop-name" placeholder="Bakery">
+      <button class="btn" id="add-shop-btn">➕ Add shop</button>
+    </div>
+
+    <div class="card" id="item-editor-card" style="display:none;">
+      <h2 id="item-editor-title">Items</h2>
+      <p class="hint">Tap item pictures, names, prices or variant names/pictures to edit. Use ▲ ▼ to reorder.</p>
+      <div id="item-list"></div>
+      <label>Item image</label>
+      <div class="image-slot image-pickable" id="new-item-image-slot" tabindex="0" data-kind="new-item">
+        <img class="thumb thumb-md" id="new-item-image-preview" alt="">
+        <div class="hint">📁 Click or 📋 Paste image</div>
+      </div>
+      <label for="new-name">Item name</label>
+      <input type="text" id="new-name" placeholder="Juice">
+      <label for="new-price">Price</label>
+      <input type="number" id="new-price" min="0" step="1" placeholder="5">
+      <label for="new-variants">Variants / Flavors / Types (comma-separated, optional)</label>
+      <input type="text" id="new-variants" placeholder="Apple, Orange, Grape">
+      <button class="btn" id="add-item-btn">➕ Add item</button>
+    </div>
+  </section>
+</div>
+
+<!-- Order Tray Element (Strict Vertical Stack) -->
+<div class="order-tray" id="order-tray" style="display:none;">
+  <h3 style="font-size:24px;margin-bottom:12px;">📋 Current Order</h3>
+  <div id="order-items-list"></div>
+  <div class="cart-total" style="margin-top:12px;">
+    <span>Total:</span>
+    <span id="order-total-amt">$0</span>
+  </div>
+  <button class="btn" id="finish-order-btn" style="width:100%;margin-top:14px;">🏁 Pay with QR Code</button>
+</div>
+
+<input type="file" id="global-image-input" accept="image/*" style="display:none;">
+
+<!-- Variant Selection Modal Overlay -->
+<div class="modal-overlay" id="variant-modal-overlay">
+  <div class="stall-sign" id="variant-modal-content"></div>
+</div>
+
+<!-- Combined Order QR Modal Overlay -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="stall-sign" id="modal-content"></div>
+</div>
+
+<!-- PIN modal -->
+<div class="modal-overlay" id="pin-overlay">
+  <div class="stall-sign" id="pin-content" style="max-width:340px;">
+    <button class="modal-close" id="pin-close-btn">✕</button>
+    <div class="name-big">Enter Setup PIN</div>
+    <input type="password" id="pin-input" inputmode="numeric" placeholder="••••">
+    <div id="pin-error"></div>
+    <button class="btn" id="pin-submit-btn" style="width:100%;">Unlock</button>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="stall-sign" id="confirm-content" style="max-width:360px;">
+    <div class="name-big" id="confirm-message" style="font-size:24px;"></div>
+    <div class="row" style="margin-top:22px;">
+      <button class="btn ghost" id="confirm-cancel-btn">Cancel</button>
+      <button class="btn danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+if(!window.storage){
+  const firebaseConfig = {
+    apiKey: "AIzaSyAXS6SsKcrDRxmJOKPoV6w2LFBBjDZscJ4",
+    authDomain: "shoppinggame-b5c1c.firebaseapp.com",
+    databaseURL: "https://shoppinggame-b5c1c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "shoppinggame-b5c1c",
+    storageBucket: "shoppinggame-b5c1c.firebasestorage.app",
+    messagingSenderId: "719471867766",
+    appId: "1:719471867766:web:b4aa52bccf7d6304d4ec57"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  window.storage = {
+    async get(key){
+      const snap = await db.ref('data/' + key).once('value');
+      if(!snap.exists()) return null;
+      return { key, value: snap.val(), shared: true };
+    },
+    async set(key, value){
+      await db.ref('data/' + key).set(value);
+      return { key, value, shared: true };
+    },
+    async delete(key){
+      await db.ref('data/' + key).remove();
+      return { key, deleted: true, shared: true };
+    },
+    async list(prefix){
+      let query = db.ref('data');
+      if(prefix) query = query.orderByKey().startAt(prefix).endAt(prefix + '\uf8ff');
+      const snap = await query.once('value');
+      const keys = [];
+      snap.forEach(child => keys.push(child.key));
+      return { keys, prefix, shared: true };
+    }
+  };
+}
+
+function svgPlaceholder(emoji, bg){
+  bg = bg || '#F6C445';
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><rect width='160' height='160' rx='24' fill='${bg}'/><text x='80' y='108' font-size='80' text-anchor='middle'>${emoji}</text></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+const PLACEHOLDER_IMG = svgPlaceholder('🛍️');
+const DEFAULT_SHOP = {id:'general', image: svgPlaceholder('🏪'), name:'General Store', hidden: false};
+const DEFAULT_ITEMS = [
+  {id:'apple01', image: svgPlaceholder('🍎'), name:'Apple', price:3, hidden: false, variants: []},
+  {id:'book01', image: svgPlaceholder('📖'), name:'Sticker Book', price:8, hidden: false, variants: []},
+  {id:'pencil01', image: svgPlaceholder('✏️'), name:'Fancy Pencil', price:2, hidden: false, variants: [{name:'Red'}, {name:'Blue'}, {name:'Green'}]},
+  {id:'toy01', image: svgPlaceholder('🧸'), name:'Mini Toy', price:10, hidden: false, variants: []},
+];
+const DEFAULT_PIN = '1234';
+const DEFAULT_TITLE = '⭐ Let\'s go shopping! ⭐';
+const DEFAULT_SUBTITLE = 'What would you like?';
+const CURRENCY_SYMBOLS = {USD:'$', JPY:'¥'};
+
+let shops = [];
+let shopItemsCache = {};   
+let currentEditShopId = null; 
+let currentSellShopId = null; 
+let allItemsIndex = {};    
+let cart = [];
+let activeOrder = []; 
+let scanning = false;
+let videoStream = null;
+let setupPin = DEFAULT_PIN;
+let currency = 'USD';
+let orderPosition = 'auto';
+let budgetEnabled = false;
+let budgetAmount = 0;
+let nameMode = 'device'; 
+let studentNames = []; 
+let currentUserGoogleName = null;
+let newShopImageData = null; 
+let newItemImageData = null; 
+let pendingImageTarget = null; 
+
+function slugify(name){
+  return name.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,10) + Math.random().toString(36).slice(2,6);
+}
+
+function normalizeVariants(variants){
+  if (!Array.isArray(variants)) return [];
+  return variants.map(v => typeof v === 'string' ? { name: v, image: null } : v);
+}
+
+let toastTimer = null;
+function notify(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.style.display = 'none'; }, 2600);
+}
+let confirmResolve = null;
+function confirmDialog(message, okLabel){
+  return new Promise((resolve)=>{
+    confirmResolve = resolve;
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('confirm-ok-btn').textContent = okLabel || 'Delete';
+    document.getElementById('confirm-overlay').classList.add('open');
+  });
+}
+function resolveConfirm(result){
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if(confirmResolve){ confirmResolve(result); confirmResolve = null; }
+}
+document.getElementById('confirm-cancel-btn').addEventListener('click', ()=>resolveConfirm(false));
+document.getElementById('confirm-ok-btn').addEventListener('click', ()=>resolveConfirm(true));
+document.getElementById('confirm-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'confirm-overlay') resolveConfirm(false);
+});
+function money(n){ return (CURRENCY_SYMBOLS[currency] || '$') + Number(n).toFixed(0); }
+function imgTag(src, cls){
+  const safe = src || PLACEHOLDER_IMG;
+  return `<img class="thumb ${cls}" src="${safe}" alt="" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}'">`;
+}
+function editableImgTag(src, cls, kind, id, shopId, variantIdx){
+  const safe = src || PLACEHOLDER_IMG;
+  const shopAttr = shopId ? ` data-shop-id="${shopId}"` : '';
+  const vAttr = (variantIdx !== undefined && variantIdx !== null) ? ` data-vidx="${variantIdx}"` : '';
+  return `<img class="thumb ${cls} image-pickable" tabindex="0" src="${safe}" alt="" data-kind="${kind}" data-id="${id}"${shopAttr}${vAttr} onerror="this.onerror=null;this.src='${PLACEHOLDER_IMG}'">`;
+}
+
+function fileToCompressedDataUrl(file, maxDim, quality){
+  maxDim = maxDim || 200;
+  quality = quality || 0.75;
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; } }
+        else { if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = ()=>reject(new Error('Could not read image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=>reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Google Auth Setup ----------
+firebase.auth().onAuthStateChanged((user) => {
+  const gate = document.getElementById('auth-gate-overlay');
+  if (user) {
+    currentUserGoogleName = user.displayName || user.email.split('@')[0];
+    document.getElementById('auth-user-name').textContent = currentUserGoogleName;
+    if(nameMode === 'google'){
+      document.getElementById('auth-signed-in').style.display = 'flex';
+      gate.style.display = 'none';
+    }
+    handleShopperNameChange();
+  } else {
+    currentUserGoogleName = null;
+    document.getElementById('auth-signed-in').style.display = 'none';
+    if(nameMode === 'google'){
+      gate.style.display = 'flex';
+    } else {
+      gate.style.display = 'none';
+    }
+  }
+});
+
+function triggerGoogleSignIn() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).catch((error) => {
+    console.error('Google Auth Error:', error);
+    notify('Sign-in failed. Please check your connection.');
+  });
+}
+
+document.getElementById('gate-signin-btn').addEventListener('click', triggerGoogleSignIn);
+
+document.getElementById('google-signout-btn').addEventListener('click', () => {
+  firebase.auth().signOut().then(() => {
+    cart = [];
+    renderCart();
+  });
+});
+
+// ---------- storage: shops ----------
+async function loadShops(){
+  try{
+    const res = await window.storage.get('shop:shops', true);
+    if(res && res.value){
+      shops = JSON.parse(res.value);
+    } else {
+      shops = [DEFAULT_SHOP];
+      await window.storage.set('shop:shops', JSON.stringify(shops), true);
+      shopItemsCache[DEFAULT_SHOP.id] = DEFAULT_ITEMS;
+      await window.storage.set('shop:items:' + DEFAULT_SHOP.id, JSON.stringify(DEFAULT_ITEMS), true);
+    }
+  } catch(e){
+    console.error('loadShops failed', e);
+    shops = [DEFAULT_SHOP];
+  }
+}
+async function saveShops(){
+  try{
+    const result = await window.storage.set('shop:shops', JSON.stringify(shops), true);
+    if(!result) console.error('Save shops failed: no result');
+  } catch(e){ console.error('saveShops failed', e); }
+}
+
+// ---------- storage: items per shop ----------
+async function loadShopItems(shopId){
+  if(shopItemsCache[shopId]) return shopItemsCache[shopId];
+  try{
+    const res = await window.storage.get('shop:items:' + shopId, true);
+    let items = (res && res.value) ? JSON.parse(res.value) : [];
+    items.forEach(i => { i.variants = normalizeVariants(i.variants); });
+    shopItemsCache[shopId] = items;
+  } catch(e){
+    console.error('loadShopItems failed', shopId, e);
+    shopItemsCache[shopId] = [];
+  }
+  return shopItemsCache[shopId];
+}
+async function saveShopItems(shopId){
+  try{
+    const result = await window.storage.set('shop:items:' + shopId, JSON.stringify(shopItemsCache[shopId] || []), true);
+    if(!result) console.error('Save items failed: no result');
+  } catch(e){ console.error('saveShopItems failed', e); }
+}
+
+// ---------- storage: setup PIN ----------
+async function loadSetupPin(){
+  try{
+    const res = await window.storage.get('shop:pin', true);
+    setupPin = (res && res.value) ? res.value : DEFAULT_PIN;
+  } catch(e){
+    setupPin = DEFAULT_PIN;
+  }
+  return setupPin;
+}
+
+// ---------- storage: currency & order position ----------
+async function loadCurrency(){
+  try{
+    const res = await window.storage.get('shop:currency', true);
+    currency = (res && res.value) ? res.value : 'USD';
+  } catch(e){ currency = 'USD'; }
+  const sel = document.getElementById('currency-select');
+  if(sel) sel.value = currency;
+}
+
+async function loadOrderPosition(){
+  try{
+    const res = await window.storage.get('shop:orderPosition', true);
+    orderPosition = (res && res.value) ? res.value : 'auto';
+  } catch(e){ orderPosition = 'auto'; }
+  const sel = document.getElementById('order-position-select');
+  if(sel) sel.value = orderPosition;
+  applyOrderPositionClass();
+}
+
+function applyOrderPositionClass(){
+  const panel = document.getElementById('order-tray');
+  const embeddedSlot = document.getElementById('embedded-order-tray-slot');
+  const body = document.body;
+
+  if(!panel) return;
+
+  let effectivePos = orderPosition;
+
+  if (effectivePos === 'auto') {
+    effectivePos = (window.innerWidth >= 1450) ? 'left' : 'bottom';
+  }
+
+  if (effectivePos === 'bottom') {
+    panel.className = 'order-tray';
+    if (embeddedSlot && panel.parentElement !== embeddedSlot) {
+      embeddedSlot.appendChild(panel);
+    }
+  } else if (effectivePos === 'left') {
+    panel.className = 'floating-order-panel pos-left';
+    if (panel.parentElement !== body) {
+      body.appendChild(panel);
+    }
+  } else if (effectivePos === 'right') {
+    panel.className = 'floating-order-panel pos-right';
+    if (panel.parentElement !== body) {
+      body.appendChild(panel);
+    }
+  }
+}
+
+window.addEventListener('resize', applyOrderPositionClass);
+
+// ---------- Auto Device ID Function ----------
+function getOrCreateDeviceId() {
+  let devId = localStorage.getItem('mall_auto_device_id');
+  if (!devId) {
+    devId = 'PC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    localStorage.setItem('mall_auto_device_id', devId);
+  }
+  return devId;
+}
+
+// ---------- storage: name entry mode & student list ----------
+async function loadNameSettings(){
+  try{
+    const resMode = await window.storage.get('shop:nameMode', true);
+    nameMode = (resMode && resMode.value) ? resMode.value : 'device';
+  } catch(e){ nameMode = 'device'; }
+  
+  try{
+    const resNames = await window.storage.get('shop:studentNames', true);
+    studentNames = (resNames && resNames.value) ? JSON.parse(resNames.value) : [];
+  } catch(e){ studentNames = []; }
+
+  document.getElementById('name-mode-select').value = nameMode;
+  document.getElementById('name-list-input').value = studentNames.join('\n');
+  document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
+  renderNameInputUI();
+}
+
+async function saveNameSettings(){
+  try{
+    await window.storage.set('shop:nameMode', nameMode, true);
+    await window.storage.set('shop:studentNames', JSON.stringify(studentNames), true);
+  } catch(e){ console.error('saveNameSettings failed', e); }
+}
+
+function renderNameInputUI(){
+  const textContainer = document.getElementById('shopper-input-text-container');
+  const selectContainer = document.getElementById('shopper-input-select-container');
+  const nameSelect = document.getElementById('shopper-name-select');
+  const gate = document.getElementById('auth-gate-overlay');
+  const signedInBox = document.getElementById('auth-signed-in');
+
+  if (nameMode === 'device') {
+    signedInBox.style.display = 'none';
+    gate.style.display = 'none';
+    textContainer.style.display = 'none';
+    selectContainer.style.display = 'none';
+    handleShopperNameChange();
+  } else if (nameMode === 'google') {
+    textContainer.style.display = 'none';
+    selectContainer.style.display = 'none';
+    if(currentUserGoogleName){
+      signedInBox.style.display = 'flex';
+      gate.style.display = 'none';
+    } else {
+      signedInBox.style.display = 'none';
+      gate.style.display = 'flex';
+    }
+  } else if (nameMode === 'list') {
+    signedInBox.style.display = 'none';
+    gate.style.display = 'none';
+    textContainer.style.display = 'none';
+    selectContainer.style.display = 'block';
+    
+    nameSelect.innerHTML = '<option value="">🙋 Select your name...</option>';
+    studentNames.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      nameSelect.appendChild(opt);
+    });
+  } else {
+    signedInBox.style.display = 'none';
+    gate.style.display = 'none';
+    textContainer.style.display = 'block';
+    selectContainer.style.display = 'none';
+  }
+}
+
+function getActiveShopperName(){
+  if(nameMode === 'device'){
+    return getOrCreateDeviceId();
+  } else if(nameMode === 'google'){
+    return currentUserGoogleName || '';
+  } else if(nameMode === 'list'){
+    return document.getElementById('shopper-name-select').value.trim();
+  } else {
+    return document.getElementById('shopper-name-input').value.trim();
+  }
+}
+
+// ---------- storage: spending limit ----------
+async function loadBudget(){
+  try{
+    const res = await window.storage.get('shop:budget', true);
+    if(res && res.value){
+      const data = JSON.parse(res.value);
+      budgetEnabled = !!data.enabled;
+      budgetAmount = Number(data.amount) || 0;
+    }
+  } catch(e){ }
+  const chk = document.getElementById('budget-enabled');
+  const amt = document.getElementById('budget-amount');
+  if(chk) chk.checked = budgetEnabled;
+  if(amt) amt.value = budgetAmount || '';
+  document.getElementById('budget-amount-row').style.display = budgetEnabled ? 'block' : 'none';
+}
+async function saveBudget(){
+  try{
+    await window.storage.set('shop:budget', JSON.stringify({enabled: budgetEnabled, amount: budgetAmount}), true);
+  } catch(e){ console.error('saveBudget failed', e); }
+}
+
+// ---------- storage: branding (title / subtitle) ----------
+async function loadBranding(){
+  let title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE;
+  try{
+    const res = await window.storage.get('shop:title', true);
+    if(res && res.value) title = res.value;
+  } catch(e){ }
+  try{
+    const res = await window.storage.get('shop:subtitle', true);
+    if(res && res.value) subtitle = res.value;
+  } catch(e){ }
+  document.getElementById('app-title').textContent = title;
+  document.getElementById('app-subtitle').textContent = subtitle;
+  document.getElementById('edit-app-title').textContent = title;
+  document.getElementById('edit-app-subtitle').textContent = subtitle;
+}
+
+function startInlineEdit(el, value, type, onSave, allowEmpty){
+  const input = document.createElement('input');
+  input.type = type === 'number' ? 'number' : 'text';
+  if(type === 'number'){ input.min = 0; input.step = 1; }
+  input.value = value;
+  input.className = 'inline-edit-input';
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+  let done = false;
+  function finish(save){
+    if(done) return;
+    done = true;
+    const newVal = input.value.trim();
+    const shouldSave = save && (allowEmpty || newVal !== '') && newVal !== String(value);
+    el.textContent = (shouldSave && newVal !== '') ? newVal : (allowEmpty && save ? '' : value);
+    input.replaceWith(el);
+    if(shouldSave){
+      onSave(type === 'number' ? Number(newVal) : newVal);
+    }
+  }
+  input.addEventListener('blur', ()=>finish(true));
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); finish(true); }
+    if(e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  });
+}
+
+// ---------- image upload / paste handling (Setup page only) ----------
+function getClipboardImageFile(e){
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')) return it.getAsFile();
+  }
+  return null;
+}
+async function applyNewImageToTarget(dataset, file){
+  let image;
+  try{ image = await fileToCompressedDataUrl(file); }
+  catch(e){ console.error(e); notify('Could not read that image — try another.'); return; }
+  const kind = dataset.kind;
+  if(kind === 'new-shop'){
+    newShopImageData = image;
+    document.getElementById('new-shop-image-preview').src = image;
+  } else if(kind === 'new-item'){
+    newItemImageData = image;
+    document.getElementById('new-item-image-preview').src = image;
+  } else if(kind === 'shop'){
+    const shop = shops.find(s=>s.id===dataset.id);
+    if(!shop) return;
+    shop.image = image;
+    await saveShops();
+    renderShopList();
+  } else if(kind === 'item'){
+    const items = shopItemsCache[dataset.shopId] || [];
+    const item = items.find(i=>i.id===dataset.id);
+    if(!item) return;
+    item.image = image;
+    await saveShopItems(dataset.shopId);
+    renderItemEditor();
+    if(currentSellShopId===dataset.shopId) renderSellGrid();
+  } else if(kind === 'variant'){
+    const items = shopItemsCache[dataset.shopId] || [];
+    const item = items.find(i=>i.id===dataset.id);
+    if(!item || !item.variants) return;
+    const vIdx = Number(dataset.vidx);
+    if(item.variants[vIdx]){
+      item.variants[vIdx].image = image;
+      await saveShopItems(dataset.shopId);
+      renderItemEditor();
+      if(currentSellShopId===dataset.shopId) renderSellGrid();
+    }
+  }
+}
+document.addEventListener('click', (e)=>{
+  const slot = e.target.closest('.image-pickable');
+  if(!slot) return;
+  document.querySelectorAll('.image-pickable').forEach(el => el.classList.remove('active-target'));
+  slot.classList.add('active-target');
+  pendingImageTarget = { kind: slot.dataset.kind, id: slot.dataset.id, shopId: slot.dataset.shopId, vidx: slot.dataset.vidx, element: slot };
+  slot.focus();
+  document.getElementById('global-image-input').click();
+});
+document.getElementById('global-image-input').addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file || !pendingImageTarget) return;
+  applyNewImageToTarget(pendingImageTarget, file);
+});
+document.addEventListener('paste', (e)=>{
+  const file = getClipboardImageFile(e);
+  if(!file) return;
+
+  const el = document.activeElement;
+  let targetData = null;
+
+  if (el && el.classList && el.classList.contains('image-pickable')) {
+    targetData = el.dataset;
+  } else if (pendingImageTarget) {
+    targetData = pendingImageTarget;
+  }
+
+  if (!targetData) return;
+  e.preventDefault();
+  applyNewImageToTarget(targetData, file);
+});
+
+// ---------- SETUP: shop list with reordering ----------
+function renderShopList(){
+  const box = document.getElementById('shop-list');
+  if(!shops.length){
+    box.innerHTML = '<p class="empty">No shops yet. Add one below!</p>';
+    return;
+  }
+  box.innerHTML = '';
+  shops.forEach((shop, index)=>{
+    const el = document.createElement('div');
+    el.className = 'shop-ticket' + (shop.id===currentEditShopId ? ' selected' : '');
+    const count = shopItemsCache[shop.id] ? shopItemsCache[shop.id].length : '…';
+    const hiddenBadge = shop.hidden ? '<span class="badge hidden-badge">🙈 Hidden</span>' : '';
+    const hideIcon = shop.hidden ? '🙈' : '👁️';
+    el.innerHTML = `
+      <div class="reorder-btns">
+        <button class="order-btn" data-action="shop-up" ${index===0?'disabled':''}>▲</button>
+        <button class="order-btn" data-action="shop-down" ${index===shops.length-1?'disabled':''}>▼</button>
+      </div>
+      ${editableImgTag(shop.image, 'thumb-sm', 'shop', shop.id)}
+      <div class="info"><div class="name editable-text">${shop.name} ${hiddenBadge}</div><div class="count">${count} item(s)</div></div>
+      <button class="toggle-hide" title="Hide/Show Shop">${hideIcon}</button>
+      <button class="del" title="Delete shop">✕</button>
+    `;
+
+    el.querySelector('[data-action="shop-up"]').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(index > 0){
+        const temp = shops[index];
+        shops[index] = shops[index-1];
+        shops[index-1] = temp;
+        await saveShops();
+        renderShopList();
+        renderSellShopPicker();
+      }
+    });
+
+    el.querySelector('[data-action="shop-down"]').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(index < shops.length-1){
+        const temp = shops[index];
+        shops[index] = shops[index+1];
+        shops[index+1] = temp;
+        await saveShops();
+        renderShopList();
+        renderSellShopPicker();
+      }
+    });
+
+    el.querySelector('.name').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      startInlineEdit(e.currentTarget, shop.name, 'text', async (newName)=>{
+        shop.name = newName;
+        await saveShops();
+        renderShopList();
+        renderSellShopPicker();
+        if(currentEditShopId===shop.id){
+          document.getElementById('item-editor-title').textContent = `Items in ${newName}`;
+        }
+      });
+    });
+    el.querySelector('.toggle-hide').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      shop.hidden = !shop.hidden;
+      await saveShops();
+      renderShopList();
+      renderSellShopPicker();
+    });
+    el.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('del') || e.target.classList.contains('toggle-hide') || e.target.classList.contains('image-pickable') || e.target.classList.contains('name') || e.target.classList.contains('order-btn')) return;
+      selectShopForEditing(shop.id);
+    });
+    el.querySelector('.del').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const ok = await confirmDialog(`Delete "${shop.name}" and all its items?`, 'Delete');
+      if(!ok) return;
+      shops = shops.filter(s=>s.id!==shop.id);
+      await saveShops();
+      try{ await window.storage.delete('shop:items:' + shop.id, true); } catch(err){ console.error(err); }
+      delete shopItemsCache[shop.id];
+      if(currentEditShopId===shop.id){
+        currentEditShopId = null;
+        document.getElementById('item-editor-card').style.display = 'none';
+      }
+      renderShopList();
+      renderSellShopPicker();
+    });
+    box.appendChild(el);
+  });
+}
+
+async function selectShopForEditing(shopId){
+  currentEditShopId = shopId;
+  await loadShopItems(shopId);
+  renderShopList();
+  const shop = shops.find(s=>s.id===shopId);
+  document.getElementById('item-editor-card').style.display = 'block';
+  document.getElementById('item-editor-title').innerHTML = `Items in ${shop.name}`;
+  renderItemEditor();
+}
+
+document.getElementById('add-shop-btn').addEventListener('click', async ()=>{
+  const name = document.getElementById('new-shop-name').value.trim();
+  if(!name){ notify('Please enter a shop name.'); return; }
+  const btn = document.getElementById('add-shop-btn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  const image = newShopImageData || PLACEHOLDER_IMG;
+  const shop = {id: slugify(name), image, name, hidden: false};
+  shops.push(shop);
+  shopItemsCache[shop.id] = [];
+  await saveShops();
+  await saveShopItems(shop.id);
+  newShopImageData = null;
+  document.getElementById('new-shop-image-preview').src = PLACEHOLDER_IMG;
+  document.getElementById('new-shop-name').value = '';
+  btn.disabled = false; btn.textContent = '➕ Add shop';
+  renderShopList();
+  renderSellShopPicker();
+  selectShopForEditing(shop.id);
+});
+
+// ---------- SETUP: item editor ----------
+function renderItemEditor(){
+  const box = document.getElementById('item-list');
+  const items = shopItemsCache[currentEditShopId] || [];
+  if(!items.length){
+    box.innerHTML = '<p class="empty">No items yet. Add one below!</p>';
+    return;
+  }
+  box.innerHTML = '';
+  items.forEach((item, index)=>{
+    const el = document.createElement('div');
+    el.className = 'item-ticket';
+    const hiddenBadge = item.hidden ? '<span class="badge hidden-badge">🙈 Hidden</span>' : '';
+    const hideIcon = item.hidden ? '🙈' : '👁️';
+    const variants = normalizeVariants(item.variants);
+
+    let variantsHtml = '';
+    if(variants.length > 0){
+      variantsHtml = '<div class="variant-setup-list">';
+      variants.forEach((v, vIdx) => {
+        const vImg = v.image || item.image || PLACEHOLDER_IMG;
+        variantsHtml += `
+          <div class="variant-setup-card">
+            ${editableImgTag(vImg, 'thumb-tiny', 'variant', item.id, currentEditShopId, vIdx)}
+            <span class="vname">${v.name}</span>
+            <button class="del-v-btn" data-vidx="${vIdx}" title="Remove variant">✕</button>
+          </div>
+        `;
+      });
+      variantsHtml += '</div>';
+    }
+
+    const rawVariantsText = variants.map(v => v.name).join(', ');
+
+    el.innerHTML = `
+      <div class="reorder-btns">
+        <button class="order-btn" data-action="up" ${index===0?'disabled':''}>▲</button>
+        <button class="order-btn" data-action="down" ${index===items.length-1?'disabled':''}>▼</button>
+      </div>
+      ${editableImgTag(item.image, 'thumb-sm', 'item', item.id, currentEditShopId)}
+      <div class="info">
+        <div class="name editable-text">${item.name} ${hiddenBadge}</div>
+        <div class="price editable-text">${money(item.price)}</div>
+        <div class="editable-text" data-field="variants" style="font-size:14px;margin-top:4px;opacity:0.85;">
+          ${rawVariantsText ? '🎨 Variants: ' + rawVariantsText : '➕ Add variants'}
+        </div>
+        ${variantsHtml}
+      </div>
+      <button class="toggle-hide" title="Hide/Show Item">${hideIcon}</button>
+      <button class="del" data-id="${item.id}" title="Remove">✕</button>
+    `;
+
+    el.querySelector('[data-action="up"]').addEventListener('click', async ()=>{
+      if(index > 0){
+        const temp = items[index];
+        items[index] = items[index-1];
+        items[index-1] = temp;
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      }
+    });
+
+    el.querySelector('[data-action="down"]').addEventListener('click', async ()=>{
+      if(index < items.length-1){
+        const temp = items[index];
+        items[index] = items[index+1];
+        items[index+1] = temp;
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      }
+    });
+
+    el.querySelector('.name').addEventListener('click', (e)=>{
+      startInlineEdit(e.currentTarget, item.name, 'text', async (newName)=>{
+        item.name = newName;
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      });
+    });
+
+    el.querySelector('.price').addEventListener('click', (e)=>{
+      startInlineEdit(e.currentTarget, item.price, 'number', async (newPrice)=>{
+        item.price = newPrice;
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      });
+    });
+
+    el.querySelector('[data-field="variants"]').addEventListener('click', (e)=>{
+      startInlineEdit(e.currentTarget, rawVariantsText, 'text', async (newVariantsText)=>{
+        const names = newVariantsText ? newVariantsText.split(',').map(s=>s.trim()).filter(Boolean) : [];
+        item.variants = names.map(n => {
+          const old = item.variants.find(v => v.name === n);
+          return { name: n, image: old ? old.image : null };
+        });
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      }, true);
+    });
+
+    el.querySelectorAll('.del-v-btn').forEach(btn => {
+      btn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const vIdx = Number(e.currentTarget.getAttribute('data-vidx'));
+        item.variants.splice(vIdx, 1);
+        await saveShopItems(currentEditShopId);
+        renderItemEditor();
+        if(currentSellShopId===currentEditShopId) renderSellGrid();
+      });
+    });
+
+    el.querySelector('.toggle-hide').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      item.hidden = !item.hidden;
+      await saveShopItems(currentEditShopId);
+      renderItemEditor();
+      if(currentSellShopId===currentEditShopId) renderSellGrid();
+    });
+
+    el.querySelector('.del').addEventListener('click', async ()=>{
+      shopItemsCache[currentEditShopId] = shopItemsCache[currentEditShopId].filter(i=>i.id!==item.id);
+      renderItemEditor();
+      renderShopList();
+      await saveShopItems(currentEditShopId);
+      if(currentSellShopId===currentEditShopId) renderSellGrid();
+    });
+
+    box.appendChild(el);
+  });
+}
+
+document.getElementById('add-item-btn').addEventListener('click', async ()=>{
+  if(!currentEditShopId){ notify('Pick a shop first.'); return; }
+  const name = document.getElementById('new-name').value.trim();
+  const price = document.getElementById('new-price').value;
+  const rawVariants = document.getElementById('new-variants').value.trim();
+  if(!name || price===''){ notify('Please enter a name and price.'); return; }
+
+  const btn = document.getElementById('add-item-btn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  const image = newItemImageData || PLACEHOLDER_IMG;
+  const variants = rawVariants 
+    ? rawVariants.split(',').map(s=>s.trim()).filter(Boolean).map(vName => ({ name: vName, image: null })) 
+    : [];
+
+  const newItem = {id: slugify(name), image, name, price: Number(price), hidden: false, variants};
+  shopItemsCache[currentEditShopId] = shopItemsCache[currentEditShopId] || [];
+  shopItemsCache[currentEditShopId].push(newItem);
+
+  renderItemEditor();
+  renderShopList();
+
+  newItemImageData = null;
+  document.getElementById('new-item-image-preview').src = PLACEHOLDER_IMG;
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-price').value = '';
+  document.getElementById('new-variants').value = '';
+
+  btn.disabled = false; btn.textContent = '➕ Add item';
+  await saveShopItems(currentEditShopId);
+  if(currentSellShopId===currentEditShopId) renderSellGrid();
+});
+
+// ---------- SELL TAB: Register System ----------
+function renderSellShopPicker(){
+  const current = document.getElementById('sell-shop-current');
+  const picker = document.getElementById('sell-shop-picker');
+
+  const visibleShops = shops.filter(s => !s.hidden);
+
+  if(currentSellShopId && !visibleShops.find(s=>s.id===currentSellShopId)){
+    currentSellShopId = null; 
+  }
+
+  if(!visibleShops.length){
+    current.style.display = 'none';
+    picker.style.display = '';
+    picker.innerHTML = '<p class="empty">No active shops available.</p>';
+    renderSellGrid();
+    return;
+  }
+
+  if(currentSellShopId){
+    const shop = visibleShops.find(s=>s.id===currentSellShopId);
+    picker.style.display = 'none';
+    current.style.display = 'block';
+    current.innerHTML = `
+      <div class="shop-chip" id="sell-shop-chip">
+        ${imgTag(shop.image, 'thumb-sm')}
+        <div class="name">${shop.name}</div>
+        <div class="change-hint">🔄 Change</div>
+      </div>`;
+    document.getElementById('sell-shop-chip').addEventListener('click', ()=>{
+      currentSellShopId = null;
+      activeOrder = [];
+      renderOrderTray();
+      renderSellShopPicker();
+    });
+  } else {
+    current.style.display = 'none';
+    picker.style.display = 'grid';
+    picker.innerHTML = '';
+    visibleShops.forEach(shop=>{
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      card.innerHTML = `${imgTag(shop.image, 'thumb-md')}<div class="name">${shop.name}</div>`;
+      card.addEventListener('click', ()=>{
+        currentSellShopId = shop.id;
+        renderSellShopPicker();
+      });
+      picker.appendChild(card);
+    });
+  }
+  renderSellGrid();
+}
+
+async function renderSellGrid(){
+  const grid = document.getElementById('sell-grid');
+  if(!currentSellShopId){ grid.innerHTML = ''; return; }
+  grid.innerHTML = '<p class="loading">Loading items&hellip;</p>';
+  const items = await loadShopItems(currentSellShopId);
+  
+  const visibleItems = items.filter(i => !i.hidden);
+
+  if(!visibleItems.length){
+    grid.innerHTML = '<p class="empty">This shop has no active items right now.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  visibleItems.forEach(item=>{
+    const card = document.createElement('div');
+    card.className = 'item-card';
+
+    const variants = normalizeVariants(item.variants);
+    let variantBadgesHtml = '';
+    if(variants.length > 0){
+      variantBadgesHtml = '<div class="item-menu-variants">';
+      variants.forEach(v => {
+        variantBadgesHtml += `<span class="item-menu-badge">${v.name}</span>`;
+      });
+      variantBadgesHtml += '</div>';
+    }
+
+    card.innerHTML = `
+      ${imgTag(item.image, 'thumb-md')}
+      <div class="name">${item.name}</div>
+      <div class="price">${money(item.price)}</div>
+      ${variantBadgesHtml}
+    `;
+    card.addEventListener('click', ()=>handleItemClickOnSell(item));
+    grid.appendChild(card);
+  });
+}
+
+function handleItemClickOnSell(item){
+  const variants = normalizeVariants(item.variants);
+  if(variants.length > 0){
+    openVariantModal(item, variants);
+  } else {
+    addItemToOrder(item, null, item.image);
+  }
+}
+
+function openVariantModal(item, variants){
+  const content = document.getElementById('variant-modal-content');
+  let cardsHtml = '<div class="variant-grid">';
+  variants.forEach(variant => {
+    const vImg = variant.image || item.image || PLACEHOLDER_IMG;
+    cardsHtml += `
+      <div class="variant-card" data-variant="${variant.name}">
+        ${imgTag(vImg, 'thumb-sm')}
+        <span>${variant.name}</span>
+      </div>`;
+  });
+  cardsHtml += '</div>';
+
+  content.innerHTML = `
+    <button class="modal-close" id="variant-modal-close-btn">✕</button>
+    ${imgTag(item.image, 'thumb-md')}
+    <div class="name-big">${item.name}</div>
+    <div class="hint" style="font-size:20px;margin-top:10px;">What would you like?</div>
+    ${cardsHtml}
+  `;
+
+  content.querySelectorAll('.variant-card').forEach(card => {
+    card.addEventListener('click', (e)=>{
+      const selectedVariantName = e.currentTarget.getAttribute('data-variant');
+      const vObj = variants.find(v => v.name === selectedVariantName);
+      const chosenImage = (vObj && vObj.image) ? vObj.image : item.image;
+      addItemToOrder(item, selectedVariantName, chosenImage);
+      closeVariantModal();
+    });
+  });
+
+  content.querySelector('#variant-modal-close-btn').addEventListener('click', closeVariantModal);
+  document.getElementById('variant-modal-overlay').classList.add('open');
+}
+
+function closeVariantModal(){
+  document.getElementById('variant-modal-overlay').classList.remove('open');
+}
+
+document.getElementById('variant-modal-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'variant-modal-overlay') closeVariantModal();
+});
+
+function addItemToOrder(item, selectedVariant, chosenImage){
+  const orderKey = selectedVariant ? `${item.id}:${selectedVariant}` : item.id;
+  const displayName = selectedVariant ? `${item.name} (${selectedVariant})` : item.name;
+
+  const existing = activeOrder.find(o => o.orderKey === orderKey);
+  if(existing){
+    existing.qty++;
+  } else {
+    activeOrder.push({ ...item, image: chosenImage, orderKey, displayName, variant: selectedVariant, qty: 1 });
+  }
+  renderOrderTray();
+}
+
+function renderOrderTray(){
+  const tray = document.getElementById('order-tray');
+  const list = document.getElementById('order-items-list');
+  const totalEl = document.getElementById('order-total-amt');
+
+  const activeSellTab = document.getElementById('tab-sell').classList.contains('active');
+
+  if(!activeOrder.length || !activeSellTab){
+    tray.style.display = 'none';
+    return;
+  }
+
+  tray.style.display = 'flex';
+
+  list.innerHTML = '';
+
+  activeOrder.forEach((item, index) => {
+    const el = document.createElement('div');
+    el.className = 'order-item';
+    el.innerHTML = `
+      ${imgTag(item.image, 'thumb-tiny')}
+      <div class="name">${item.displayName}<br><span style="color:var(--red);">${money(item.price)}</span></div>
+      <div class="qty-controls">
+        <button class="qty-btn" data-action="dec">-</button>
+        <span>${item.qty}</span>
+        <button class="qty-btn" data-action="inc">+</button>
+      </div>
+    `;
+
+    el.querySelector('[data-action="dec"]').addEventListener('click', ()=>{
+      item.qty--;
+      if(item.qty <= 0) activeOrder.splice(index, 1);
+      renderOrderTray();
+    });
+
+    el.querySelector('[data-action="inc"]').addEventListener('click', ()=>{
+      item.qty++;
+      renderOrderTray();
+    });
+
+    list.appendChild(el);
+  });
+
+  const total = activeOrder.reduce((s, i) => s + (Number(i.price) * i.qty), 0);
+  totalEl.textContent = money(total);
+}
+
+document.getElementById('finish-order-btn').addEventListener('click', ()=>{
+  if(!activeOrder.length) return;
+
+  const flatItemTokens = [];
+  activeOrder.forEach(item => {
+    for(let i=0; i<item.qty; i++){
+      flatItemTokens.push(item.orderKey);
+    }
+  });
+
+  const orderPayload = 'SHOP-ORDER:' + flatItemTokens.join(',');
+  const total = activeOrder.reduce((s, i) => s + (Number(i.price) * i.qty), 0);
+
+  openCombinedOrderModal(orderPayload, total);
+});
+
+// ---------- Combined Order QR Modal ----------
+function openCombinedOrderModal(payload, total){
+  const content = document.getElementById('modal-content');
+  content.innerHTML = `
+    <button class="modal-close" id="modal-close-btn">✕</button>
+    <div class="name-big">Scan Your Order</div>
+    <div class="price-big">${money(total)}</div>
+    <div id="qrcode-box"></div>
+    <div class="code-fallback">Scan with tablet camera</div>
+  `;
+  const qrBox = content.querySelector('#qrcode-box');
+  
+  if (typeof QRCode !== 'undefined') {
+    try {
+      new QRCode(qrBox, {
+        text: payload,
+        width: 240, 
+        height: 240,
+        colorDark: '#2B3A3A', 
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch(e) {
+      qrBox.innerHTML = '<p class="hint">QR code failed to render — type code manually.</p>';
+    }
+  } else {
+    qrBox.innerHTML = '<p class="hint">QRCode library missing.</p>';
+  }
+  
+  content.querySelector('#modal-close-btn').addEventListener('click', closeQrModal);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeQrModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  activeOrder = [];
+  renderOrderTray();
+}
+
+document.getElementById('modal-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modal-overlay') closeQrModal();
+});
+
+// ---------- SHOP TAB ----------
+function renderCart(){
+  const list = document.getElementById('cart-list');
+  document.getElementById('basket-count').textContent = cart.length;
+
+  if(!cart.length){
+    list.innerHTML = '<p class="empty">🧺 Empty</p>';
+  } else {
+    const groupedMap = new Map();
+    cart.forEach((item) => {
+      const key = (item.variant ? `${item.id}:${item.variant}` : item.id);
+      if(groupedMap.has(key)){
+        groupedMap.get(key).qty++;
+      } else {
+        groupedMap.set(key, { ...item, key, qty: 1 });
+      }
+    });
+
+    list.innerHTML = '';
+    groupedMap.forEach((group) => {
+      const el = document.createElement('div');
+      el.className = 'cart-item';
+      const displayName = group.variant ? `${group.name} (${group.variant})` : group.name;
+      const itemSubtotal = Number(group.price) * group.qty;
+      const qtyBadge = group.qty > 1 ? `<span class="qty-badge">x${group.qty}</span>` : '';
+
+      el.innerHTML = `
+        ${imgTag(group.image, 'thumb-tiny')}
+        <div class="name">${displayName}</div>
+        <div class="price">${money(itemSubtotal)}</div>
+        ${qtyBadge}
+        <button class="del-item" title="Remove all of this item">✕</button>
+      `;
+
+      el.querySelector('.del-item').addEventListener('click', ()=>{
+        cart = cart.filter(i => (i.variant ? `${i.id}:${i.variant}` : i.id) !== group.key);
+        renderCart();
+        const name = getActiveShopperName();
+        if(name) persistCart(name);
+        setScanMsg(`Removed ${displayName}`, false);
+      });
+
+      list.appendChild(el);
+    });
+  }
+
+  const total = cart.reduce((s,i)=>s+Number(i.price),0);
+  const totalEl = document.getElementById('cart-total-amt');
+  totalEl.textContent = (budgetEnabled && budgetAmount > 0)
+    ? `${money(total)} / ${money(budgetAmount)}`
+    : money(total);
+}
+
+function addToCart(item, variant, customImage){
+  const img = customImage || item.image;
+  cart.push({...item, image: img, variant: variant || item.variant, ts: Date.now()});
+  renderCart();
+  const name = getActiveShopperName();
+  if(name) persistCart(name);
+}
+
+async function persistCart(name){
+  if(!name) return false;
+  const key = 'shop:student:' + name.toLowerCase();
+  const total = cart.reduce((s,i)=>s+Number(i.price),0);
+  try{
+    const result = await window.storage.set(key, JSON.stringify({name, purchases: cart, total}), true);
+    return !!result;
+  } catch(e){ console.error('persistCart failed', e); return false; }
+}
+
+async function loadCartForName(name){
+  const key = 'shop:student:' + name.toLowerCase();
+  try{
+    const res = await window.storage.get(key, true);
+    if(res && res.value){
+      const data = JSON.parse(res.value);
+      return data.purchases || [];
+    }
+  } catch(e){ }
+  return null;
+}
+
+function setScanMsg(msg, isError){
+  const el = document.getElementById('scan-msg');
+  el.textContent = msg;
+  el.style.color = isError ? '#E4572E' : '#2B3A3A';
+}
+
+async function buildItemIndex(){
+  allItemsIndex = {};
+  for(const shop of shops){
+    if (shop.hidden) continue;
+    const items = await loadShopItems(shop.id);
+    items.forEach(item=>{ 
+      if (!item.hidden) {
+        allItemsIndex['SHOP-ITEM:' + item.id] = {...item, shopId: shop.id}; 
+        allItemsIndex[item.id] = {...item, shopId: shop.id}; 
+      }
+    });
+  }
+}
+
+async function handleScannedCode(rawCode){
+  if (!rawCode) return;
+  const cleanCode = rawCode.trim();
+
+  let itemTokens = [];
+  if (cleanCode.startsWith('SHOP-ORDER:')) {
+    itemTokens = cleanCode.replace('SHOP-ORDER:', '').split(',');
+  } else if (cleanCode.startsWith('SHOP-ITEM:')) {
+    itemTokens = [cleanCode.replace('SHOP-ITEM:', '')];
+  } else {
+    itemTokens = [cleanCode];
+  }
+
+  await buildItemIndex();
+
+  let addedCount = 0;
+  for (const token of itemTokens) {
+    const parts = token.split(':');
+    const baseId = parts[0];
+    const variantName = parts[1] || null;
+
+    const item = allItemsIndex[baseId];
+    if (item) {
+      if (budgetEnabled && budgetAmount > 0) {
+        const spent = cart.reduce((s, i) => s + Number(i.price), 0);
+        if (item.price > (budgetAmount - spent)) {
+          setScanMsg(`🚫 Budget limit reached!`, true);
+          break;
+        }
+      }
+
+      let chosenImage = item.image;
+      if (variantName && item.variants) {
+        const vObjs = normalizeVariants(item.variants);
+        const match = vObjs.find(v => v.name === variantName);
+        if (match && match.image) chosenImage = match.image;
+      }
+
+      addToCart(item, variantName, chosenImage);
+      addedCount++;
+    }
+  }
+
+  if (addedCount > 0) {
+    stopScanning();
+    setScanMsg(`✅ Added ${addedCount} item(s) to basket!`, false);
+  } else {
+    setScanMsg(`❌ Item(s) not found`, true);
+  }
+}
+
+document.getElementById('start-scan-btn').addEventListener('click', async ()=>{
+  if (typeof jsQR === 'undefined') {
+    setScanMsg('⚠️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
+    return;
+  }
+
+  await buildItemIndex();
+  document.getElementById('manual-entry-row').style.display = 'none';
+  const area = document.getElementById('camera-area');
+  const video = document.getElementById('scan-video');
+  
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    video.srcObject = videoStream;
+    area.style.display = 'block';
+    
+    await video.play();
+    scanning = true;
+    setScanMsg('📷 Point at QR code...', false);
+    requestAnimationFrame(scanLoop);
+  } catch(e){
+    console.error('camera error', e);
+    setScanMsg('🚫 Camera blocked or unavailable', true);
+  }
+});
+
+function scanLoop(){
+  if(!scanning) return;
+  const video = document.getElementById('scan-video');
+  const canvas = document.getElementById('scan-canvas');
+  
+  if(video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0){
+    if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+    if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "attemptBoth",
+    });
+    
+    if(code && code.data){
+      handleScannedCode(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(scanLoop);
+}
+
+document.getElementById('stop-scan-btn').addEventListener('click', stopScanning);
+function stopScanning(){
+  scanning = false;
+  if(videoStream){ 
+    videoStream.getTracks().forEach(t=>t.stop()); 
+    videoStream = null; 
+  }
+  document.getElementById('camera-area').style.display = 'none';
+}
+document.getElementById('manual-entry-btn').addEventListener('click', ()=>{
+  stopScanning();
+  const row = document.getElementById('manual-entry-row');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('manual-submit-btn').addEventListener('click', ()=>{
+  const val = document.getElementById('manual-code').value.trim();
+  if(val){ handleScannedCode(val); document.getElementById('manual-code').value = ''; }
+});
+
+async function handleShopperNameChange(){
+  const name = getActiveShopperName();
+  if(!name) return;
+  if(cart.length){
+    persistCart(name);
+    return;
+  }
+  const saved = await loadCartForName(name);
+  if(saved && saved.length){
+    cart = saved;
+    renderCart();
+    setScanMsg(`👋 Welcome back! Loaded ${saved.length} item(s)`, false);
+  }
+}
+
+document.getElementById('shopper-name-input').addEventListener('change', handleShopperNameChange);
+document.getElementById('shopper-name-select').addEventListener('change', handleShopperNameChange);
+
+// ---------- CLASS LIST TAB ----------
+function esc(str){
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+async function loadClassList(){
+  const box = document.getElementById('class-list');
+  box.innerHTML = '<p class="loading">Loading&hellip;</p>';
+  try{
+    const listRes = await window.storage.list('shop:student:', true);
+    const keys = (listRes && listRes.keys) || [];
+    if(!keys.length){ box.innerHTML = '<p class="empty">No saved shopping lists yet.</p>'; return; }
+    const rows = [];
+    for(const key of keys){
+      try{
+        const r = await window.storage.get(key, true);
+        if(r && r.value) rows.push(JSON.parse(r.value));
+      } catch(e){ console.error('failed to load', key, e); }
+    }
+    rows.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+    let html = '<table><tr><th>Name</th><th>Items</th><th>Total</th><th></th></tr>';
+    rows.forEach(r=>{
+      const purchases = r.purchases || [];
+      const pills = purchases.length
+        ? purchases.map((p,idx)=>{
+            const label = p.variant ? `${esc(p.name)} (${esc(p.variant)})` : esc(p.name);
+            return `<span class="pill">${label}<button class="pill-x" data-idx="${idx}" title="Remove">✕</button></span>`;
+          }).join(' ')
+        : '—';
+      html += `<tr data-name="${esc(r.name)}"><td>${esc(r.name)}</td><td>${pills}</td><td>${money(r.total||0)}</td><td><button class="del-student-btn" title="Clear this student's list">🗑️</button></td></tr>`;
+    });
+    html += '</table>';
+    box.innerHTML = html;
+  } catch(e){
+    console.error('loadClassList failed', e);
+    box.innerHTML = '<p class="empty">Couldn\'t load the class list. Try refreshing.</p>';
+  }
+}
+async function removeItemFromStudent(name, idx){
+  const key = 'shop:student:' + name.toLowerCase();
+  try{
+    const res = await window.storage.get(key, true);
+    if(!res || !res.value) return;
+    const data = JSON.parse(res.value);
+    data.purchases = (data.purchases || []).filter((_,i)=>i!==idx);
+    data.total = data.purchases.reduce((s,p)=>s+Number(p.price),0);
+    await window.storage.set(key, JSON.stringify(data), true);
+  } catch(e){ console.error('removeItemFromStudent failed', e); notify('❌ Could not update that list'); }
+  loadClassList();
+}
+async function clearStudentList(name){
+  const ok = await confirmDialog(`Clear ${name}'s entire saved list?`, 'Clear');
+  if(!ok) return;
+  const key = 'shop:student:' + name.toLowerCase();
+  try{ await window.storage.delete(key, true); } catch(e){ console.error('clearStudentList failed', e); }
+  loadClassList();
+}
+document.getElementById('class-list').addEventListener('click', (e)=>{
+  const pillBtn = e.target.closest('.pill-x');
+  if(pillBtn){
+    const tr = pillBtn.closest('tr');
+    removeItemFromStudent(tr.dataset.name, Number(pillBtn.dataset.idx));
+    return;
+  }
+  const delBtn = e.target.closest('.del-student-btn');
+  if(delBtn){
+    const tr = delBtn.closest('tr');
+    clearStudentList(tr.dataset.name);
+  }
+});
+document.getElementById('refresh-class-btn').addEventListener('click', loadClassList);
+
+// ---------- Setup lock / PIN ----------
+function openPinModal(){
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-overlay').classList.add('open');
+  loadSetupPin();
+  setTimeout(()=>document.getElementById('pin-input').focus(), 50);
+}
+function closePinModal(){
+  document.getElementById('pin-overlay').classList.remove('open');
+}
+async function submitPin(){
+  const entered = document.getElementById('pin-input').value.trim();
+  await loadSetupPin();
+  if(entered && entered === setupPin){
+    closePinModal();
+    unlockSetup();
+  } else {
+    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+  }
+}
+function unlockSetup(){
+  document.getElementById('class-tab-btn').style.display = '';
+  document.getElementById('manual-entry-btn').style.display = '';
+  const setupBtn = document.getElementById('setup-tab-btn');
+  setupBtn.style.display = '';
+  setupBtn.click();
+}
+document.getElementById('pin-submit-btn').addEventListener('click', submitPin);
+document.getElementById('pin-close-btn').addEventListener('click', closePinModal);
+document.getElementById('pin-input').addEventListener('keydown', (e)=>{ if(e.key==='Enter') submitPin(); });
+document.getElementById('pin-overlay').addEventListener('click', (e)=>{ if(e.target.id==='pin-overlay') closePinModal(); });
+
+document.getElementById('save-pin-btn').addEventListener('click', async ()=>{
+  const val = document.getElementById('change-pin').value.trim();
+  if(!val){ notify('Type a new PIN first.'); return; }
+  try{
+    const result = await window.storage.set('shop:pin', val, true);
+    if(result){ setupPin = val; notify('PIN updated.'); document.getElementById('change-pin').value=''; }
+    else notify('Could not save the PIN — try again.');
+  } catch(e){ console.error(e); notify('Could not save the PIN — try again.'); }
+});
+document.getElementById('lock-setup-btn').addEventListener('click', ()=>{
+  document.getElementById('setup-tab-btn').style.display = 'none';
+  document.getElementById('class-tab-btn').style.display = 'none';
+  document.getElementById('manual-entry-btn').style.display = 'none';
+  document.getElementById('manual-entry-row').style.display = 'none';
+  document.querySelector('nav.tabs button[data-tab="sell"]').click();
+});
+
+let tapCount = 0;
+let tapTimer = null;
+document.getElementById('app-title').addEventListener('click', (e)=>{
+  const setupUnlocked = document.getElementById('setup-tab-btn').style.display !== 'none';
+  if (setupUnlocked) {
+    const target = e.currentTarget;
+    startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
+      document.getElementById('edit-app-title').textContent = newVal;
+      try{ await window.storage.set('shop:title', newVal, true); } catch(err){ console.error(err); }
+    });
+    return;
+  }
+
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(()=>{ tapCount = 0; }, 2500);
+  if(tapCount >= 5){
+    tapCount = 0;
+    clearTimeout(tapTimer);
+    openPinModal();
+  }
+});
+
+// ---------- Branding edit (title / subtitle) ----------
+document.getElementById('edit-app-title').addEventListener('click', (e)=>{
+  const target = e.currentTarget;
+  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
+    document.getElementById('app-title').textContent = newVal;
+    try{ await window.storage.set('shop:title', newVal, true); } catch(err){ console.error(err); }
+  });
+});
+
+document.getElementById('edit-app-subtitle').addEventListener('click', (e)=>{
+  const target = e.currentTarget;
+  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
+    document.getElementById('app-title').textContent = newVal;
+    document.getElementById('edit-app-subtitle').textContent = newVal;
+    try{ await window.storage.set('shop:subtitle', newVal, true); } catch(err){ console.error(err); }
+  });
+});
+
+document.getElementById('app-subtitle').addEventListener('click', (e)=>{
+  const target = e.currentTarget;
+  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
+    document.getElementById('edit-app-subtitle').textContent = newVal;
+    try{ await window.storage.set('shop:subtitle', newVal, true); } catch(err){ console.error(err); }
+  });
+});
+
+// ---------- Settings ----------
+document.getElementById('currency-select').addEventListener('change', async (e)=>{
+  currency = e.target.value;
+  try{ await window.storage.set('shop:currency', currency, true); } catch(err){ console.error(err); }
+  renderItemEditor();
+  renderSellGrid();
+  renderCart();
+  renderOrderTray();
+});
+
+document.getElementById('order-position-select').addEventListener('change', async (e)=>{
+  orderPosition = e.target.value;
+  try{ await window.storage.set('shop:orderPosition', orderPosition, true); } catch(err){ console.error(err); }
+  applyOrderPositionClass();
+  renderOrderTray();
+});
+
+document.getElementById('name-mode-select').addEventListener('change', async (e)=>{
+  nameMode = e.target.value;
+  document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
+  await saveNameSettings();
+  renderNameInputUI();
+});
+
+document.getElementById('save-names-btn').addEventListener('click', async ()=>{
+  const rawText = document.getElementById('name-list-input').value;
+  studentNames = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+  await saveNameSettings();
+  renderNameInputUI();
+  notify('Student name list saved.');
+});
+
+document.getElementById('budget-enabled').addEventListener('change', async (e)=>{
+  budgetEnabled = e.target.checked;
+  document.getElementById('budget-amount-row').style.display = budgetEnabled ? 'block' : 'none';
+  await saveBudget();
+  renderCart();
+});
+document.getElementById('budget-amount').addEventListener('change', async (e)=>{
+  budgetAmount = Number(e.target.value) || 0;
+  await saveBudget();
+  renderCart();
+});
+
+// ---------- Tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab !== 'shop') stopScanning();
+    if(btn.dataset.tab === 'class') loadClassList();
+    if(btn.dataset.tab === 'shop') await buildItemIndex();
+    if(btn.dataset.tab === 'sell') renderSellGrid();
+    renderOrderTray();
+  });
+});
+
+// ---------- init ----------
+(async function init(){
+  document.getElementById('new-shop-image-preview').src = PLACEHOLDER_IMG;
+  document.getElementById('new-item-image-preview').src = PLACEHOLDER_IMG;
+  await loadShops();
+  await loadSetupPin();
+  await loadCurrency();
+  await loadOrderPosition();
+  await loadNameSettings();
+  await loadBudget();
+  await loadBranding();
+  renderShopList();
+  renderSellShopPicker();
+  renderCart();
+})();
+</script>
+</body>
+</html>
