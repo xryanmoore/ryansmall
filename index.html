@@ -423,9 +423,9 @@
     padding:10px 16px;font-weight:800;font-size:20px;margin-bottom:14px;
   }
 
-  /* Full Screen Authentication Gate Overlay */
+  /* Full Screen Authentication Gate Overlay (Hidden by default to prevent flash) */
   #auth-gate-overlay {
-    display: flex;
+    display: none;
     position: fixed;
     inset: 0;
     background: var(--cream);
@@ -465,7 +465,7 @@
     <button data-tab="sell" class="active">🏪 Sell</button>
     <button data-tab="shop">🧺 Shop</button>
     <button data-tab="class" id="class-tab-btn" style="display:none;">📋 Class List</button>
-    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠 Setup</button>
+    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️ Setup</button>
   </nav>
 
   <!-- SELL TAB -->
@@ -578,6 +578,7 @@
       <label for="name-mode-select" style="margin-top:18px;">Name Entry Mode</label>
       <select id="name-mode-select">
         <option value="google">🔑 Auto Google SSO (Chromebook Accounts)</option>
+        <option value="device">📱 Device / Anonymous Mode (Save by Device ID)</option>
         <option value="text">✍️ Text Input ("Enter your name")</option>
         <option value="list">📋 Dropdown List (Select from list)</option>
       </select>
@@ -617,7 +618,7 @@
 
     <div class="card">
       <h2>Shops</h2>
-      <p class="hint">Tap ▲ ▼ to reorder shops. Tap pictures or names to edit. Tap 👁️️ to hide/show.</p>
+      <p class="hint">Tap ▲ ▼ to reorder shops. Tap pictures or names to edit. Tap 👁️ to hide/show.</p>
       <div id="shop-list"><p class="loading">Loading shops&hellip;</p></div>
       <label>Shop image</label>
       <div class="image-slot image-pickable" id="new-shop-image-slot" tabindex="0" data-kind="new-shop">
@@ -770,7 +771,7 @@ let orderPosition = 'auto';
 let compactView = false;
 let budgetEnabled = false;
 let budgetAmount = 0;
-let nameMode = 'google'; 
+let nameMode = 'device'; 
 let studentNames = []; 
 let currentUserGoogleName = null;
 let newShopImageData = null; 
@@ -784,6 +785,15 @@ function slugify(name){
 function normalizeVariants(variants){
   if (!Array.isArray(variants)) return [];
   return variants.map(v => typeof v === 'string' ? { name: v, image: null } : v);
+}
+
+function getDeviceId(){
+  let id = localStorage.getItem('shopping_device_id');
+  if(!id){
+    id = 'device-' + Math.random().toString(36).substring(2, 8);
+    localStorage.setItem('shopping_device_id', id);
+  }
+  return id;
 }
 
 let toastTimer = null;
@@ -1021,8 +1031,8 @@ window.addEventListener('resize', applyOrderPositionClass);
 async function loadNameSettings(){
   try{
     const resMode = await window.storage.get('shop:nameMode', true);
-    nameMode = (resMode && resMode.value) ? resMode.value : 'google';
-  } catch(e){ nameMode = 'google'; }
+    nameMode = (resMode && resMode.value) ? resMode.value : 'device';
+  } catch(e){ nameMode = 'device'; }
   
   try{
     const resNames = await window.storage.get('shop:studentNames', true);
@@ -1033,6 +1043,7 @@ async function loadNameSettings(){
   document.getElementById('name-list-input').value = studentNames.join('\n');
   document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
   renderNameInputUI();
+  handleShopperNameChange();
 }
 
 async function saveNameSettings(){
@@ -1059,6 +1070,11 @@ function renderNameInputUI(){
       signedInBox.style.display = 'none';
       gate.style.display = 'flex';
     }
+  } else if (nameMode === 'device') {
+    signedInBox.style.display = 'none';
+    gate.style.display = 'none';
+    textContainer.style.display = 'none';
+    selectContainer.style.display = 'none';
   } else if (nameMode === 'list') {
     signedInBox.style.display = 'none';
     gate.style.display = 'none';
@@ -1083,6 +1099,8 @@ function renderNameInputUI(){
 function getActiveShopperName(){
   if(nameMode === 'google'){
     return currentUserGoogleName || '';
+  } else if(nameMode === 'device'){
+    return getDeviceId();
   } else if(nameMode === 'list'){
     return document.getElementById('shopper-name-select').value.trim();
   } else {
@@ -2040,7 +2058,7 @@ document.getElementById('clear-cart-btn').addEventListener('click', ()=>{
 });
 document.getElementById('save-cart-btn').addEventListener('click', async ()=>{
   const name = getActiveShopperName();
-  if(!name){ notify('Please sign in first.'); return; }
+  if(!name){ notify('Please enter a name first.'); return; }
   if(!cart.length){ notify('Your basket is empty — scan some items first!'); return; }
   const btn = document.getElementById('save-cart-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
@@ -2070,7 +2088,7 @@ async function loadClassList(){
       } catch(e){ console.error('failed to load', key, e); }
     }
     rows.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-    let html = '<table><tr><th>Name</th><th>Items</th><th>Total</th><th></th></tr>';
+    let html = '<table><tr><th>Name / Device</th><th>Items</th><th>Total</th><th></th></tr>';
     rows.forEach(r=>{
       const purchases = r.purchases || [];
       const pills = purchases.length
@@ -2079,7 +2097,7 @@ async function loadClassList(){
             return `<span class="pill">${label}<button class="pill-x" data-idx="${idx}" title="Remove">✕</button></span>`;
           }).join(' ')
         : '—';
-      html += `<tr data-name="${esc(r.name)}"><td>${esc(r.name)}</td><td>${pills}</td><td>${money(r.total||0)}</td><td><button class="del-student-btn" title="Clear this student's list">🗑️</button></td></tr>`;
+      html += `<tr data-name="${esc(r.name)}"><td>${esc(r.name)}</td><td>${pills}</td><td>${money(r.total||0)}</td><td><button class="del-student-btn" title="Clear this list">🗑️</button></td></tr>`;
     });
     html += '</table>';
     box.innerHTML = html;
@@ -2249,6 +2267,7 @@ document.getElementById('name-mode-select').addEventListener('change', async (e)
   document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
   await saveNameSettings();
   renderNameInputUI();
+  handleShopperNameChange();
 });
 
 document.getElementById('save-names-btn').addEventListener('click', async ()=>{
@@ -2256,7 +2275,7 @@ document.getElementById('save-names-btn').addEventListener('click', async ()=>{
   studentNames = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
   await saveNameSettings();
   renderNameInputUI();
-notify('Student name list saved.');
+  notify('Student name list saved.');
 });
 
 document.getElementById('budget-enabled').addEventListener('change', async (e)=>{
