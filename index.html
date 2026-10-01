@@ -40,6 +40,51 @@
     padding:24px;
     font-size:18px;
   }
+  
+  /* Compact Mode Adjustments */
+  body.compact-ui {
+    padding: 12px;
+    font-size: 15px;
+  }
+  body.compact-ui .wrap {
+    max-width: 780px;
+  }
+  body.compact-ui header {
+    padding: 16px 20px;
+  }
+  body.compact-ui header h1 {
+    font-size: 34px;
+  }
+  body.compact-ui nav.tabs button {
+    font-size: 22px;
+    padding: 10px 14px;
+  }
+  body.compact-ui .card {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  body.compact-ui .item-card {
+    padding: 14px 8px;
+  }
+  body.compact-ui .item-card .name {
+    font-size: 19px;
+    margin-top: 8px;
+  }
+  body.compact-ui .thumb-md {
+    width: 95px;
+    height: 95px;
+  }
+  body.compact-ui .floating-order-panel {
+    width: 220px;
+    padding: 12px;
+  }
+  body.compact-ui .floating-order-panel.pos-left {
+    left: 10px;
+  }
+  body.compact-ui .floating-order-panel.pos-right {
+    right: 10px;
+  }
+
   h1,h2,h3,.display{font-family:'Comic Neue',cursive;margin:0;font-weight:700;}
   
   /* Restored original 900px width */
@@ -413,7 +458,7 @@
     <button data-tab="sell" class="active">🏪 Sell</button>
     <button data-tab="shop">🧺 Shop</button>
     <button data-tab="class" id="class-tab-btn" style="display:none;">📋 Class List</button>
-    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️ Setup</button>
+    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️️ Setup</button>
   </nav>
 
   <!-- SELL TAB -->
@@ -510,10 +555,15 @@
         <option value="JPY">¥ Yen</option>
       </select>
 
+      <label style="display:flex;align-items:center;gap:10px;margin-top:18px;cursor:pointer;">
+        <input type="checkbox" id="compact-view-enabled" style="width:auto;transform:scale(1.3);">
+        <span>📱 Compact View (Shrink layout to fit lower-res screens)</span>
+      </label>
+
       <label for="order-position-select" style="margin-top:18px;">Current Order Window Position</label>
       <select id="order-position-select">
         <option value="auto">⚡ Auto (Fixed left for wide screens, Bottom for small screens)</option>
-        <option value="left">⬅️️ Always Fixed Left</option>
+        <option value="left">⬅️ Always Fixed Left</option>
         <option value="right">➡️ Always Fixed Right</option>
         <option value="bottom">⬇️ Always Bottom Embedded</option>
       </select>
@@ -710,6 +760,7 @@ let videoStream = null;
 let setupPin = DEFAULT_PIN;
 let currency = 'USD';
 let orderPosition = 'auto';
+let compactView = false;
 let budgetEnabled = false;
 let budgetAmount = 0;
 let nameMode = 'google'; 
@@ -886,7 +937,7 @@ async function loadSetupPin(){
   return setupPin;
 }
 
-// ---------- storage: currency & order position ----------
+// ---------- storage: currency, compact view & order position ----------
 async function loadCurrency(){
   try{
     const res = await window.storage.get('shop:currency', true);
@@ -894,6 +945,25 @@ async function loadCurrency(){
   } catch(e){ currency = 'USD'; }
   const sel = document.getElementById('currency-select');
   if(sel) sel.value = currency;
+}
+
+async function loadCompactView(){
+  try{
+    const res = await window.storage.get('shop:compactView', true);
+    compactView = (res && res.value) ? JSON.parse(res.value) : false;
+  } catch(e){ compactView = false; }
+  const chk = document.getElementById('compact-view-enabled');
+  if(chk) chk.checked = compactView;
+  applyCompactViewClass();
+}
+
+function applyCompactViewClass(){
+  if(compactView){
+    document.body.classList.add('compact-ui');
+  } else {
+    document.body.classList.remove('compact-ui');
+  }
+  applyOrderPositionClass();
 }
 
 async function loadOrderPosition(){
@@ -916,8 +986,9 @@ function applyOrderPositionClass(){
   let effectivePos = orderPosition;
 
   if (effectivePos === 'auto') {
-    /* Only float left when screen is wider than 1450px to prevent overlap with 900px menu */
-    effectivePos = (window.innerWidth >= 1450) ? 'left' : 'bottom';
+    /* Responsive threshold drops to 1150px in Compact Mode to allow side-by-side view on Chromebooks */
+    const minWidth = compactView ? 1150 : 1450;
+    effectivePos = (window.innerWidth >= minWidth) ? 'left' : 'bottom';
   }
 
   if (effectivePos === 'bottom') {
@@ -2154,6 +2225,12 @@ document.getElementById('currency-select').addEventListener('change', async (e)=
   renderOrderTray();
 });
 
+document.getElementById('compact-view-enabled').addEventListener('change', async (e)=>{
+  compactView = e.target.checked;
+  try{ await window.storage.set('shop:compactView', JSON.stringify(compactView), true); } catch(err){ console.error(err); }
+  applyCompactViewClass();
+});
+
 document.getElementById('order-position-select').addEventListener('change', async (e)=>{
   orderPosition = e.target.value;
   try{ await window.storage.set('shop:orderPosition', orderPosition, true); } catch(err){ console.error(err); }
@@ -2210,6 +2287,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
   await loadShops();
   await loadSetupPin();
   await loadCurrency();
+  await loadCompactView();
   await loadOrderPosition();
   await loadNameSettings();
   await loadBudget();
