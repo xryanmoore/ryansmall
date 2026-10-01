@@ -75,19 +75,18 @@
     height: 95px;
   }
   body.compact-ui .floating-order-panel {
-    width: 220px;
-    padding: 12px;
+    width: 280px;
+    padding: 14px;
   }
   body.compact-ui .floating-order-panel.pos-left {
-    left: 10px;
+    left: 8px;
   }
   body.compact-ui .floating-order-panel.pos-right {
-    right: 10px;
+    right: 8px;
   }
 
   h1,h2,h3,.display{font-family:'Comic Neue',cursive;margin:0;font-weight:700;}
   
-  /* Restored original 900px width */
   .wrap{
     max-width:900px;
     margin:0 auto;
@@ -153,7 +152,7 @@
   .thumb-sm{width:46px;height:46px;}
   .thumb-md{width:130px;height:130px;margin:0 auto;border-radius:16px;}
   .thumb-lg{width:200px;height:200px;margin:0 auto;border-radius:22px;}
-  .thumb-tiny{width:48px;height:48px;border-radius:10px;}
+  .thumb-tiny{width:40px;height:40px;border-radius:8px;flex-shrink:0;}
 
   .image-pickable{cursor:pointer;}
   .image-pickable:focus, .image-pickable.active-target{outline:4px solid var(--blue);outline-offset:3px;}
@@ -265,11 +264,11 @@
   /* Fixed Side Panel Layout (Independent Floating Window) */
   .floating-order-panel {
     display: flex;
-    width: 260px;
+    width: 290px;
     background: var(--white);
     border: 5px solid var(--line);
     border-radius: 24px;
-    padding: 18px;
+    padding: 16px;
     box-shadow: 6px 6px 0 rgba(43,58,58,0.25);
     flex-direction: column;
     position: fixed;
@@ -277,25 +276,32 @@
     transform: translateY(-50%);
     z-index: 90;
     max-height: 85vh;
+    overflow-x: hidden;
   }
   .floating-order-panel.pos-left {
-    left: 20px;
+    left: 12px;
   }
   .floating-order-panel.pos-right {
-    right: 20px;
+    right: 12px;
   }
 
   .floating-order-panel h3 {
     font-size: 22px !important;
   }
   .floating-order-panel .order-item {
-    font-size: 16px !important;
-    padding: 6px 0;
+    font-size: 15px !important;
+    padding: 8px 0;
+    gap: 6px;
+  }
+  .floating-order-panel .order-item .name {
+    line-height: 1.2;
+    word-break: break-word;
   }
   .floating-order-panel .order-item button.qty-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+    width: 26px;
+    height: 26px;
+    font-size: 15px;
+    flex-shrink: 0;
   }
   .floating-order-panel .cart-total {
     font-size: 24px !important;
@@ -305,19 +311,20 @@
     padding: 10px;
   }
   .floating-order-panel #order-items-list {
-    max-height: 35vh;
+    max-height: 40vh;
     overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .order-item{
-    display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:2px dashed rgba(43,58,58,0.2);
-    font-size:20px;font-weight:700;
+    display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:2px dashed rgba(43,58,58,0.2);
+    font-size:18px;font-weight:700;
   }
-  .order-item .name{flex:1;}
-  .order-item .qty-controls{display:flex;align-items:center;gap:8px;}
+  .order-item .name{flex:1;min-width:0;}
+  .order-item .qty-controls{display:flex;align-items:center;gap:6px;flex-shrink:0;}
   .order-item button.qty-btn{
-    width:36px;height:36px;font-size:20px;font-weight:800;border:3px solid var(--line);
-    border-radius:10px;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    width:32px;height:32px;font-size:18px;font-weight:800;border:3px solid var(--line);
+    border-radius:8px;background:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;
   }
 
   .variant-grid{
@@ -458,7 +465,7 @@
     <button data-tab="sell" class="active">🏪 Sell</button>
     <button data-tab="shop">🧺 Shop</button>
     <button data-tab="class" id="class-tab-btn" style="display:none;">📋 Class List</button>
-    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️️ Setup</button>
+    <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠 Setup</button>
   </nav>
 
   <!-- SELL TAB -->
@@ -610,7 +617,7 @@
 
     <div class="card">
       <h2>Shops</h2>
-      <p class="hint">Tap ▲ ▼ to reorder shops. Tap pictures or names to edit. Tap 👁️ to hide/show.</p>
+      <p class="hint">Tap ▲ ▼ to reorder shops. Tap pictures or names to edit. Tap 👁️️ to hide/show.</p>
       <div id="shop-list"><p class="loading">Loading shops&hellip;</p></div>
       <label>Shop image</label>
       <div class="image-slot image-pickable" id="new-shop-image-slot" tabindex="0" data-kind="new-shop">
@@ -986,8 +993,7 @@ function applyOrderPositionClass(){
   let effectivePos = orderPosition;
 
   if (effectivePos === 'auto') {
-    /* Responsive threshold drops to 1150px in Compact Mode to allow side-by-side view on Chromebooks */
-    const minWidth = compactView ? 1150 : 1450;
+    const minWidth = compactView ? 1100 : 1450;
     effectivePos = (window.innerWidth >= minWidth) ? 'left' : 'bottom';
   }
 
@@ -1696,7 +1702,7 @@ function renderOrderTray(){
     el.className = 'order-item';
     el.innerHTML = `
       ${imgTag(item.image, 'thumb-tiny')}
-      <div class="name">${item.displayName} (${money(item.price)})</div>
+      <div class="name">${item.displayName}<br><span style="color:var(--red);">${money(item.price)}</span></div>
       <div class="qty-controls">
         <button class="qty-btn" data-action="dec">-</button>
         <span>${item.qty}</span>
@@ -2250,7 +2256,7 @@ document.getElementById('save-names-btn').addEventListener('click', async ()=>{
   studentNames = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
   await saveNameSettings();
   renderNameInputUI();
-  notify('Student name list saved.');
+notify('Student name list saved.');
 });
 
 document.getElementById('budget-enabled').addEventListener('change', async (e)=>{
