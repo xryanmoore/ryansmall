@@ -261,7 +261,7 @@
     margin-bottom: 12px;
   }
 
-  /* Fixed Side Panel Layout (Independent Floating Window) */
+  /* Fixed Side Panel Layout */
   .floating-order-panel {
     display: flex;
     width: 290px;
@@ -423,7 +423,6 @@
     padding:10px 16px;font-weight:800;font-size:20px;margin-bottom:14px;
   }
 
-  /* Full Screen Authentication Gate Overlay (Hidden by default to prevent flash) */
   #auth-gate-overlay {
     display: none;
     position: fixed;
@@ -520,10 +519,6 @@
       <h2>🧺 My Basket <span class="badge" id="basket-count">0</span></h2>
       <div id="cart-list"><p class="empty">🧺 Empty</p></div>
       <div class="cart-total"><span>💰</span><span id="cart-total-amt">$0</span></div>
-      <div class="row" style="margin-top:12px;">
-        <button class="btn" id="save-cart-btn">💾 Save</button>
-        <button class="btn danger" id="clear-cart-btn">🗑️ Clear All</button>
-      </div>
     </div>
   </section>
 
@@ -577,8 +572,8 @@
 
       <label for="name-mode-select" style="margin-top:18px;">Name Entry Mode</label>
       <select id="name-mode-select">
-        <option value="google">🔑 Auto Google SSO (Chromebook Accounts)</option>
         <option value="device">📱 Device / Anonymous Mode (Save by Device ID)</option>
+        <option value="google">🔑 Auto Google SSO (Chromebook Accounts)</option>
         <option value="text">✍️ Text Input ("Enter your name")</option>
         <option value="list">📋 Dropdown List (Select from list)</option>
       </select>
@@ -2048,24 +2043,6 @@ async function handleShopperNameChange(){
 
 document.getElementById('shopper-name-input').addEventListener('change', handleShopperNameChange);
 document.getElementById('shopper-name-select').addEventListener('change', handleShopperNameChange);
-
-document.getElementById('clear-cart-btn').addEventListener('click', ()=>{
-  cart = [];
-  renderCart();
-  const name = getActiveShopperName();
-  if(name) persistCart(name);
-  setScanMsg('🧺 Cleared', false);
-});
-document.getElementById('save-cart-btn').addEventListener('click', async ()=>{
-  const name = getActiveShopperName();
-  if(!name){ notify('Please enter a name first.'); return; }
-  if(!cart.length){ notify('Your basket is empty — scan some items first!'); return; }
-  const btn = document.getElementById('save-cart-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  const ok = await persistCart(name);
-  btn.disabled = false; btn.textContent = '💾 Save';
-  setScanMsg(ok ? `✅ Saved!` : '❌ Save failed', !ok);
-});
 
 // ---------- CLASS LIST TAB ----------
 function esc(str){
