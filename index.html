@@ -572,7 +572,7 @@
 
       <label for="name-mode-select" style="margin-top:18px;">Name Entry Mode</label>
       <select id="name-mode-select">
-        <option value="device">📱 Device / Anonymous Mode (Save by Device ID)</option>
+        <option value="device">👤 Firebase Anonymous Auth (No-sign in, UID saved)</option>
         <option value="google">🔑 Auto Google SSO (Chromebook Accounts)</option>
         <option value="text">✍️ Text Input ("Enter your name")</option>
         <option value="list">📋 Dropdown List (Select from list)</option>
@@ -769,6 +769,7 @@ let budgetAmount = 0;
 let nameMode = 'device'; 
 let studentNames = []; 
 let currentUserGoogleName = null;
+let currentAnonymousUid = null;
 let newShopImageData = null; 
 let newItemImageData = null; 
 let pendingImageTarget = null; 
@@ -782,13 +783,20 @@ function normalizeVariants(variants){
   return variants.map(v => typeof v === 'string' ? { name: v, image: null } : v);
 }
 
-function getDeviceId(){
-  let id = localStorage.getItem('shopping_device_id');
-  if(!id){
-    id = 'device-' + Math.random().toString(36).substring(2, 8);
-    localStorage.setItem('shopping_device_id', id);
+// Anonymous Sign-In Handler
+async function ensureAnonymousAuth(){
+  if(firebase.auth().currentUser){
+    currentAnonymousUid = firebase.auth().currentUser.uid;
+    return currentAnonymousUid;
   }
-  return id;
+  try {
+    const userCredential = await firebase.auth().signInAnonymously();
+    currentAnonymousUid = userCredential.user.uid;
+    return currentAnonymousUid;
+  } catch (error) {
+    console.error("Anonymous auth failed:", error);
+    return null;
+  }
 }
 
 let toastTimer = null;
@@ -856,17 +864,24 @@ function fileToCompressedDataUrl(file, maxDim, quality){
   });
 }
 
-// ---------- Google Auth Setup ----------
+// ---------- Google Auth & Auth Observer Setup ----------
 firebase.auth().onAuthStateChanged((user) => {
   const gate = document.getElementById('auth-gate-overlay');
-  if (user) {
+  if (user && !user.isAnonymous) {
     currentUserGoogleName = user.displayName || user.email.split('@')[0];
     document.getElementById('auth-user-name').textContent = currentUserGoogleName;
     document.getElementById('auth-signed-in').style.display = 'flex';
     gate.style.display = 'none';
     handleShopperNameChange();
+  } else if (user && user.isAnonymous) {
+    currentAnonymousUid = user.uid;
+    currentUserGoogleName = null;
+    document.getElementById('auth-signed-in').style.display = 'none';
+    gate.style.display = 'none';
+    handleShopperNameChange();
   } else {
     currentUserGoogleName = null;
+    currentAnonymousUid = null;
     document.getElementById('auth-signed-in').style.display = 'none';
     if(nameMode === 'google'){
       gate.style.display = 'flex';
@@ -1037,6 +1052,11 @@ async function loadNameSettings(){
   document.getElementById('name-mode-select').value = nameMode;
   document.getElementById('name-list-input').value = studentNames.join('\n');
   document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
+  
+  if(nameMode === 'device'){
+    await ensureAnonymousAuth();
+  }
+  
   renderNameInputUI();
   handleShopperNameChange();
 }
@@ -1095,7 +1115,7 @@ function getActiveShopperName(){
   if(nameMode === 'google'){
     return currentUserGoogleName || '';
   } else if(nameMode === 'device'){
-    return getDeviceId();
+    return currentAnonymousUid ? `Guest-${currentAnonymousUid.slice(0, 6)}` : '';
   } else if(nameMode === 'list'){
     return document.getElementById('shopper-name-select').value.trim();
   } else {
@@ -2065,7 +2085,7 @@ async function loadClassList(){
       } catch(e){ console.error('failed to load', key, e); }
     }
     rows.sort((a,b)=> (a.name||'').localeCompare(b.name||''));
-    let html = '<table><tr><th>Name / Device</th><th>Items</th><th>Total</th><th></th></tr>';
+    let html = '<table><tr><th>Name / UID</th><th>Items</th><th>Total</th><th></th></tr>';
     rows.forEach(r=>{
       const purchases = r.purchases || [];
       const pills = purchases.length
@@ -2243,6 +2263,9 @@ document.getElementById('name-mode-select').addEventListener('change', async (e)
   nameMode = e.target.value;
   document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
   await saveNameSettings();
+  if(nameMode === 'device'){
+    await ensureAnonymousAuth();
+  }
   renderNameInputUI();
   handleShopperNameChange();
 });
