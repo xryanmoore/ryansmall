@@ -592,6 +592,15 @@
         <label for="budget-amount">Max amount</label>
         <input type="number" id="budget-amount" min="0" step="1" placeholder="2000">
       </div>
+
+      <label style="display:flex;align-items:center;gap:10px;margin-top:18px;cursor:pointer;">
+        <input type="checkbox" id="item-limit-enabled" style="width:auto;transform:scale(1.3);">
+        <span>Limit quantity per item (e.g., max 5 of any item per basket)</span>
+      </label>
+      <div id="item-limit-amount-row" style="display:none;margin-top:10px;">
+        <label for="item-limit-amount">Max quantity per item</label>
+        <input type="number" id="item-limit-amount" min="1" step="1" placeholder="5">
+      </div>
     </div>
 
     <div class="card">
@@ -766,6 +775,8 @@ let orderPosition = 'auto';
 let compactView = false;
 let budgetEnabled = false;
 let budgetAmount = 0;
+let itemLimitEnabled = false;
+let itemLimitAmount = 5;
 let nameMode = 'device'; 
 let studentNames = []; 
 let currentUserGoogleName = null;
@@ -1123,7 +1134,7 @@ function getActiveShopperName(){
   }
 }
 
-// ---------- storage: spending limit ----------
+// ---------- storage: spending limit & item quantity limit ----------
 async function loadBudget(){
   try{
     const res = await window.storage.get('shop:budget', true);
@@ -1138,10 +1149,26 @@ async function loadBudget(){
   if(chk) chk.checked = budgetEnabled;
   if(amt) amt.value = budgetAmount || '';
   document.getElementById('budget-amount-row').style.display = budgetEnabled ? 'block' : 'none';
+
+  try{
+    const resItem = await window.storage.get('shop:itemLimit', true);
+    if(resItem && resItem.value){
+      const dataItem = JSON.parse(resItem.value);
+      itemLimitEnabled = !!dataItem.enabled;
+      itemLimitAmount = Number(dataItem.amount) || 5;
+    }
+  } catch(e){ }
+  const chkItem = document.getElementById('item-limit-enabled');
+  const amtItem = document.getElementById('item-limit-amount');
+  if(chkItem) chkItem.checked = itemLimitEnabled;
+  if(amtItem) amtItem.value = itemLimitAmount || 5;
+  document.getElementById('item-limit-amount-row').style.display = itemLimitEnabled ? 'block' : 'none';
 }
+
 async function saveBudget(){
   try{
     await window.storage.set('shop:budget', JSON.stringify({enabled: budgetEnabled, amount: budgetAmount}), true);
+    await window.storage.set('shop:itemLimit', JSON.stringify({enabled: itemLimitEnabled, amount: itemLimitAmount}), true);
   } catch(e){ console.error('saveBudget failed', e); }
 }
 
@@ -1706,6 +1733,14 @@ function addItemToOrder(item, selectedVariant, chosenImage){
   const displayName = selectedVariant ? `${item.name} (${selectedVariant})` : item.name;
 
   const existing = activeOrder.find(o => o.orderKey === orderKey);
+  if(itemLimitEnabled && itemLimitAmount > 0){
+    const currentQty = existing ? existing.qty : 0;
+    if(currentQty >= itemLimitAmount){
+      notify(`🚫 Limit reached! Max ${itemLimitAmount} per item.`);
+      return;
+    }
+  }
+
   if(existing){
     existing.qty++;
   } else {
@@ -1750,6 +1785,10 @@ function renderOrderTray(){
     });
 
     el.querySelector('[data-action="inc"]').addEventListener('click', ()=>{
+      if(itemLimitEnabled && itemLimitAmount > 0 && item.qty >= itemLimitAmount){
+        notify(`🚫 Limit reached! Max ${itemLimitAmount} per item.`);
+        return;
+      }
       item.qty++;
       renderOrderTray();
     });
@@ -1945,6 +1984,18 @@ async function handleScannedCode(rawCode){
 
     const item = allItemsIndex[baseId];
     if (item) {
+      const itemKey = variantName ? `${item.id}:${variantName}` : item.id;
+      
+      // Item quantity limit check
+      if (itemLimitEnabled && itemLimitAmount > 0) {
+        const currentCountInCart = cart.filter(i => (i.variant ? `${i.id}:${i.variant}` : i.id) === itemKey).length;
+        if (currentCountInCart >= itemLimitAmount) {
+          setScanMsg(`🚫 Limit reached! Max ${itemLimitAmount} per item.`, true);
+          break;
+        }
+      }
+
+      // Budget limit check
       if (budgetEnabled && budgetAmount > 0) {
         const spent = cart.reduce((s, i) => s + Number(i.price), 0);
         if (item.price > (budgetAmount - spent)) {
@@ -1969,13 +2020,15 @@ async function handleScannedCode(rawCode){
     stopScanning();
     setScanMsg(`✅ Added ${addedCount} item(s) to basket!`, false);
   } else {
-    setScanMsg(`❌ Item(s) not found`, true);
+    if(!document.getElementById('scan-msg').textContent.includes('🚫')) {
+      setScanMsg(`❌ Item(s) not found`, true);
+    }
   }
 }
 
 document.getElementById('start-scan-btn').addEventListener('click', async ()=>{
   if (typeof jsQR === 'undefined') {
-    setScanMsg('⚠️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
+    setScanMsg('⚠️️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
     return;
   }
 
@@ -2288,6 +2341,16 @@ document.getElementById('budget-amount').addEventListener('change', async (e)=>{
   budgetAmount = Number(e.target.value) || 0;
   await saveBudget();
   renderCart();
+});
+
+document.getElementById('item-limit-enabled').addEventListener('change', async (e)=>{
+  itemLimitEnabled = e.target.checked;
+  document.getElementById('item-limit-amount-row').style.display = itemLimitEnabled ? 'block' : 'none';
+  await saveBudget();
+});
+document.getElementById('item-limit-amount').addEventListener('change', async (e)=>{
+  itemLimitAmount = Number(e.target.value) || 5;
+  await saveBudget();
 });
 
 // ---------- Tabs ----------
