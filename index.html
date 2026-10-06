@@ -53,7 +53,7 @@
     padding: 16px 20px;
   }
   body.compact-ui header h1 {
-    font-size: 34px;
+    font-size: 42px;
   }
   body.compact-ui nav.tabs button {
     font-size: 22px;
@@ -100,8 +100,7 @@
   .flag:nth-child(4n){border-top-color:var(--yellow);}
 
   header{background:var(--chalk);border-radius:22px;padding:26px 30px;text-align:center;color:var(--cream);border:4px solid var(--line);}
-  header h1{font-size:46px;color:var(--yellow);letter-spacing:0.5px;cursor:default;user-select:none;}
-  header p{margin:8px 0 0;font-size:20px;opacity:0.85;}
+  header h1{font-size:56px;color:var(--yellow);letter-spacing:0.5px;cursor:default;user-select:none;}
 
   nav.tabs{display:flex;gap:14px;margin:22px 0;flex-wrap:wrap;}
   nav.tabs button{
@@ -457,11 +456,10 @@
   </div>
   <header>
     <h1 id="app-title">⭐ Let's go shopping! ⭐</h1>
-    <p id="app-subtitle">What would you like?</p>
   </header>
 
   <nav class="tabs">
-    <button data-tab="sell" class="active">💁 Shop</button>
+    <button data-tab="sell" class="active">💁 Shops</button>
     <button data-tab="shop">🧺 Buy</button>
     <button data-tab="class" id="class-tab-btn" style="display:none;">📋 Class List</button>
     <button data-tab="setup" id="setup-tab-btn" style="display:none;">🛠️ Setup</button>
@@ -482,7 +480,7 @@
   <!-- SHOP TAB -->
   <section id="tab-shop">
     <div class="card">
-      <h2>🧺 Shop</h2>
+      <h2>🧺 Buy</h2>
       
       <!-- Google Auth Account Banner -->
       <div id="auth-signed-in" style="display:none;" class="user-badge">
@@ -605,17 +603,11 @@
 
     <div class="card">
       <h2>🏷️ Branding</h2>
-      <p class="hint">Tap the title or subtitle to rename your market.</p>
+      <p class="hint">Tap the title to rename your market.</p>
       <div class="item-ticket" style="cursor:default;">
         <div class="info">
           <div class="hint" style="margin:0 0 2px;">Title</div>
           <div class="name editable-text" id="edit-app-title" tabindex="0">⭐ Let's go shopping! ⭐</div>
-        </div>
-      </div>
-      <div class="item-ticket" style="cursor:default;">
-        <div class="info">
-          <div class="hint" style="margin:0 0 2px;">Subtitle</div>
-          <div class="name editable-text" id="edit-app-subtitle" tabindex="0" style="font-size:18px;">What would you like?</div>
         </div>
       </div>
     </div>
@@ -757,7 +749,6 @@ const DEFAULT_ITEMS = [
 ];
 const DEFAULT_PIN = '1234';
 const DEFAULT_TITLE = '⭐ Let\'s go shopping! ⭐';
-const DEFAULT_SUBTITLE = 'What would you like?';
 const CURRENCY_SYMBOLS = {USD:'$', JPY:'¥'};
 
 let shops = [];
@@ -1172,21 +1163,15 @@ async function saveBudget(){
   } catch(e){ console.error('saveBudget failed', e); }
 }
 
-// ---------- storage: branding (title / subtitle) ----------
+// ---------- storage: branding (title) ----------
 async function loadBranding(){
-  let title = DEFAULT_TITLE, subtitle = DEFAULT_SUBTITLE;
+  let title = DEFAULT_TITLE;
   try{
     const res = await window.storage.get('shop:title', true);
     if(res && res.value) title = res.value;
   } catch(e){ }
-  try{
-    const res = await window.storage.get('shop:subtitle', true);
-    if(res && res.value) subtitle = res.value;
-  } catch(e){ }
   document.getElementById('app-title').textContent = title;
-  document.getElementById('app-subtitle').textContent = subtitle;
   document.getElementById('edit-app-title').textContent = title;
-  document.getElementById('edit-app-subtitle').textContent = subtitle;
 }
 
 function startInlineEdit(el, value, type, onSave, allowEmpty){
@@ -2028,7 +2013,7 @@ async function handleScannedCode(rawCode){
 
 document.getElementById('start-scan-btn').addEventListener('click', async ()=>{
   if (typeof jsQR === 'undefined') {
-    setScanMsg('⚠️️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
+    setScanMsg('⚠️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
     return;
   }
 
@@ -2263,29 +2248,12 @@ document.getElementById('app-title').addEventListener('click', (e)=>{
   }
 });
 
-// ---------- Branding edit (title / subtitle) ----------
+// ---------- Branding edit (title) ----------
 document.getElementById('edit-app-title').addEventListener('click', (e)=>{
   const target = e.currentTarget;
   startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
     document.getElementById('app-title').textContent = newVal;
     try{ await window.storage.set('shop:title', newVal, true); } catch(err){ console.error(err); }
-  });
-});
-
-document.getElementById('edit-app-subtitle').addEventListener('click', (e)=>{
-  const target = e.currentTarget;
-  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
-    document.getElementById('app-title').textContent = newVal;
-    document.getElementById('edit-app-subtitle').textContent = newVal;
-    try{ await window.storage.set('shop:subtitle', newVal, true); } catch(err){ console.error(err); }
-  });
-});
-
-document.getElementById('app-subtitle').addEventListener('click', (e)=>{
-  const target = e.currentTarget;
-  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
-    document.getElementById('edit-app-subtitle').textContent = newVal;
-    try{ await window.storage.set('shop:subtitle', newVal, true); } catch(err){ console.error(err); }
   });
 });
 
