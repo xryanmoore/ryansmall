@@ -356,7 +356,7 @@
     font-family:'Comic Neue',cursive;font-weight:700;padding:8px 26px;border-radius:28px;font-size:32px;
   }
   #qrcode-box{display:flex;justify-content:center;margin:22px 0 14px;background:white;padding:16px;border-radius:16px;}
-  #qrcode-box canvas, #qrcode-box img{width:240px !important;height:240px !important;}
+  #qrcode-box canvas, #qrcode-box img{width:100% !important;height:auto !important;max-width:320px;max-height:320px;}
 
   #pin-input{text-align:center;font-size:28px;letter-spacing:10px;margin-top:14px;}
   #pin-error{color:var(--red);font-weight:700;min-height:22px;margin-top:10px;font-size:16px;}
@@ -502,13 +502,16 @@
         <button class="btn secondary" id="manual-entry-btn" style="display:none;"><span class="icon">⌨️</span>Code</button>
       </div>
       <div id="manual-entry-row" style="display:none;margin-top:12px;">
-        <input type="text" id="manual-code" placeholder="SHOP-ORDER:apple01,pencil01">
+        <input type="text" id="manual-code" placeholder="SHOP-ORDER:apple01*2,pencil01">
         <button class="btn" id="manual-submit-btn">➕ Add</button>
       </div>
       <div id="camera-area" style="display:none;margin-top:12px;">
         <video id="scan-video" playsinline muted></video>
         <canvas id="scan-canvas"></canvas>
-        <button class="btn ghost" id="stop-scan-btn" style="width:100%;">✋ Stop</button>
+        <div class="row" style="margin-top:10px;gap:10px;">
+          <button class="btn secondary" id="switch-cam-btn" style="width:50%;margin-top:0;font-size:18px;padding:12px;">🔄 Switch Camera</button>
+          <button class="btn ghost" id="stop-scan-btn" style="width:50%;margin-top:0;font-size:18px;padding:12px;">✋ Stop</button>
+        </div>
       </div>
       <div class="scan-msg" id="scan-msg"></div>
     </div>
@@ -760,6 +763,9 @@ let cart = [];
 let activeOrder = []; 
 let scanning = false;
 let videoStream = null;
+let currentCameraFacing = 'environment';
+let cameraDevices = [];
+let cameraDeviceIndex = 0;
 let setupPin = DEFAULT_PIN;
 let currency = 'USD';
 let orderPosition = 'auto';
@@ -1788,14 +1794,11 @@ function renderOrderTray(){
 document.getElementById('finish-order-btn').addEventListener('click', ()=>{
   if(!activeOrder.length) return;
 
-  const flatItemTokens = [];
-  activeOrder.forEach(item => {
-    for(let i=0; i<item.qty; i++){
-      flatItemTokens.push(item.orderKey);
-    }
+  const formattedTokens = activeOrder.map(item => {
+    return item.qty > 1 ? `${item.orderKey}*${item.qty}` : item.orderKey;
   });
 
-  const orderPayload = 'SHOP-ORDER:' + flatItemTokens.join(',');
+  const orderPayload = 'SHOP-ORDER:' + formattedTokens.join(',');
   const total = activeOrder.reduce((s, i) => s + (Number(i.price) * i.qty), 0);
 
   openCombinedOrderModal(orderPayload, total);
@@ -1815,13 +1818,14 @@ function openCombinedOrderModal(payload, total){
   
   if (typeof QRCode !== 'undefined') {
     try {
+      const qrDim = payload.length > 50 ? 320 : 260;
       new QRCode(qrBox, {
         text: payload,
-        width: 240, 
-        height: 240,
+        width: qrDim, 
+        height: qrDim,
         colorDark: '#2B3A3A', 
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H
+        correctLevel: QRCode.CorrectLevel.M
       });
     } catch(e) {
       qrBox.innerHTML = '<p class="hint">QR code failed to render — type code manually.</p>';
@@ -1963,7 +1967,13 @@ async function handleScannedCode(rawCode){
 
   let addedCount = 0;
   for (const token of itemTokens) {
-    const parts = token.split(':');
+    if (!token) continue;
+    const multParts = token.split('*');
+    const itemSpec = multParts[0];
+    const parseQty = multParts[1] ? parseInt(multParts[1], 10) : 1;
+    const targetQty = isNaN(parseQty) || parseQty < 1 ? 1 : parseQty;
+
+    const parts = itemSpec.split(':');
     const baseId = parts[0];
     const variantName = parts[1] || null;
 
@@ -1971,33 +1981,35 @@ async function handleScannedCode(rawCode){
     if (item) {
       const itemKey = variantName ? `${item.id}:${variantName}` : item.id;
       
-      // Item quantity limit check
-      if (itemLimitEnabled && itemLimitAmount > 0) {
-        const currentCountInCart = cart.filter(i => (i.variant ? `${i.id}:${i.variant}` : i.id) === itemKey).length;
-        if (currentCountInCart >= itemLimitAmount) {
-          setScanMsg(`🚫 Limit reached! Max ${itemLimitAmount} per item.`, true);
-          break;
+      for (let q = 0; q < targetQty; q++) {
+        // Item quantity limit check
+        if (itemLimitEnabled && itemLimitAmount > 0) {
+          const currentCountInCart = cart.filter(i => (i.variant ? `${i.id}:${i.variant}` : i.id) === itemKey).length;
+          if (currentCountInCart >= itemLimitAmount) {
+            setScanMsg(`🚫 Limit reached! Max ${itemLimitAmount} per item.`, true);
+            break;
+          }
         }
-      }
 
-      // Budget limit check
-      if (budgetEnabled && budgetAmount > 0) {
-        const spent = cart.reduce((s, i) => s + Number(i.price), 0);
-        if (item.price > (budgetAmount - spent)) {
-          setScanMsg(`🚫 Budget limit reached!`, true);
-          break;
+        // Budget limit check
+        if (budgetEnabled && budgetAmount > 0) {
+          const spent = cart.reduce((s, i) => s + Number(i.price), 0);
+          if (item.price > (budgetAmount - spent)) {
+            setScanMsg(`🚫 Budget limit reached!`, true);
+            break;
+          }
         }
-      }
 
-      let chosenImage = item.image;
-      if (variantName && item.variants) {
-        const vObjs = normalizeVariants(item.variants);
-        const match = vObjs.find(v => v.name === variantName);
-        if (match && match.image) chosenImage = match.image;
-      }
+        let chosenImage = item.image;
+        if (variantName && item.variants) {
+          const vObjs = normalizeVariants(item.variants);
+          const match = vObjs.find(v => v.name === variantName);
+          if (match && match.image) chosenImage = match.image;
+        }
 
-      addToCart(item, variantName, chosenImage);
-      addedCount++;
+        addToCart(item, variantName, chosenImage);
+        addedCount++;
+      }
     }
   }
 
@@ -2011,6 +2023,44 @@ async function handleScannedCode(rawCode){
   }
 }
 
+async function startCameraStream(deviceId) {
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
+
+  const video = document.getElementById('scan-video');
+  let constraints = { video: { facingMode: currentCameraFacing } };
+
+  if (deviceId) {
+    constraints = { video: { deviceId: { exact: deviceId } } };
+  }
+
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = videoStream;
+    await video.play();
+    scanning = true;
+    setScanMsg('📷 Point at QR code...', false);
+    requestAnimationFrame(scanLoop);
+
+    // Enumerate devices for multi-camera stepping
+    if (navigator.mediaDevices.enumerateDevices) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      cameraDevices = devices.filter(d => d.kind === 'videoinput');
+    }
+  } catch (e) {
+    console.error('Camera stream error:', e);
+    // Fallback attempt without specific constraints if exact device failed
+    if (deviceId) {
+      currentCameraFacing = (currentCameraFacing === 'environment') ? 'user' : 'environment';
+      startCameraStream(null);
+    } else {
+      setScanMsg('🚫 Camera blocked or unavailable', true);
+    }
+  }
+}
+
 document.getElementById('start-scan-btn').addEventListener('click', async ()=>{
   if (typeof jsQR === 'undefined') {
     setScanMsg('⚠️ QR scanner engine failed to load. Try refreshing or use Code button.', true);
@@ -2020,22 +2070,18 @@ document.getElementById('start-scan-btn').addEventListener('click', async ()=>{
   await buildItemIndex();
   document.getElementById('manual-entry-row').style.display = 'none';
   const area = document.getElementById('camera-area');
-  const video = document.getElementById('scan-video');
-  
-  try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
-    });
-    video.srcObject = videoStream;
-    area.style.display = 'block';
-    
-    await video.play();
-    scanning = true;
-    setScanMsg('📷 Point at QR code...', false);
-    requestAnimationFrame(scanLoop);
-  } catch(e){
-    console.error('camera error', e);
-    setScanMsg('🚫 Camera blocked or unavailable', true);
+  area.style.display = 'block';
+
+  await startCameraStream(null);
+});
+
+document.getElementById('switch-cam-btn').addEventListener('click', async () => {
+  if (cameraDevices.length > 1) {
+    cameraDeviceIndex = (cameraDeviceIndex + 1) % cameraDevices.length;
+    await startCameraStream(cameraDevices[cameraDeviceIndex].deviceId);
+  } else {
+    currentCameraFacing = (currentCameraFacing === 'environment') ? 'user' : 'environment';
+    await startCameraStream(null);
   }
 });
 
