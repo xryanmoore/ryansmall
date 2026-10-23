@@ -249,15 +249,50 @@
     background: var(--cream);
     padding: 20px;
     margin-top: 20px;
-    display: block;
+    display: flex;
+    flex-direction: column;
     position: static;
     width: 100%;
     box-shadow: none;
+    gap: 12px;
+  }
+  .order-tray h3 {
+    font-size: 26px;
+    margin: 0 0 8px 0;
+    width: 100%;
   }
   .order-tray #order-items-list {
     max-height: none;
     overflow-y: visible;
-    margin-bottom: 12px;
+    margin-bottom: 0;
+    width: 100%;
+  }
+  .order-tray-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 3px dashed rgba(43,58,58,0.2);
+    width: 100%;
+  }
+  .order-tray .cart-total {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+    font-size: 28px;
+  }
+  .order-tray .row-checkout {
+    margin-top: 0;
+    flex: 0 1 auto;
+    min-width: 200px;
+  }
+  .order-tray button#finish-order-btn {
+    margin-top: 0;
+    padding: 12px 20px;
+    font-size: 20px;
   }
 
   /* Fixed Side Panel Layout */
@@ -283,7 +318,6 @@
   .floating-order-panel.pos-right {
     right: 12px;
   }
-
   .floating-order-panel h3 {
     font-size: 22px !important;
   }
@@ -305,10 +339,27 @@
   }
   .floating-order-panel .cart-total {
     font-size: 24px !important;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 3px solid var(--line);
+  }
+  .floating-order-panel .order-tray-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .floating-order-panel .row-checkout {
+    width: 100%;
   }
   .floating-order-panel button.btn {
     font-size: 18px !important;
     padding: 10px;
+    width: 100%;
+    margin-top: 6px;
   }
   .floating-order-panel #order-items-list {
     max-height: 45vh;
@@ -399,7 +450,7 @@
   .cart-item button.del-item:hover{background:rgba(228,87,46,0.1);}
   .cart-total{
     display:flex;justify-content:space-between;align-items:center;font-family:'Comic Neue',cursive;font-weight:700;
-    font-size:32px;margin-top:14px;border-top:4px solid var(--line);padding-top:16px;
+    font-size:32px;
   }
   #basket-count{font-size:18px;padding:4px 12px;}
 
@@ -522,7 +573,7 @@
     <div class="card">
       <h2>🧺 My Basket <span class="badge" id="basket-count">0</span></h2>
       <div id="cart-list"><p class="empty">🧺 Empty</p></div>
-      <div class="cart-total"><span>💰</span><span id="cart-total-amt">$0</span></div>
+      <div class="cart-total" style="margin-top:14px;border-top:4px solid var(--line);padding-top:16px;"><span>💰</span><span id="cart-total-amt">$0</span></div>
     </div>
   </section>
 
@@ -654,14 +705,16 @@
 
 <!-- Order Tray Element -->
 <div class="order-tray" id="order-tray" style="display:none;">
-  <h3 style="font-size:24px;margin-bottom:12px;">📋 Current Order</h3>
+  <h3>📋 Current Order</h3>
   <div id="order-items-list"></div>
-  <div class="cart-total" style="margin-top:auto;">
-    <span>Total:</span>
-    <span id="order-total-amt">$0</span>
-  </div>
-  <div class="row" style="margin-top:14px;">
-    <button class="btn" id="finish-order-btn" style="width:100%;">🏁<br>Pay with<br>QR Code</button>
+  <div class="order-tray-footer">
+    <div class="cart-total">
+      <span>Total: </span>
+      <span id="order-total-amt">$0</span>
+    </div>
+    <div class="row-checkout">
+      <button class="btn" id="finish-order-btn">🏁 Pay with QR Code</button>
+    </div>
   </div>
 </div>
 
