@@ -242,7 +242,7 @@
   .shop-chip .name{flex:1;font-family:'Comic Neue',cursive;font-weight:700;font-size:26px;}
   .shop-chip .change-hint{font-size:18px;font-weight:700;opacity:0.75;white-space:nowrap;}
 
-  /* Embedded Bottom Mode Layout */
+  /* Embedded Bottom Mode Layout - Strict Vertical Sequence */
   .order-tray {
     border: 4px solid var(--line);
     border-radius: 20px;
@@ -258,7 +258,7 @@
   }
   .order-tray h3 {
     font-size: 26px;
-    margin: 0 0 8px 0;
+    margin: 0;
     width: 100%;
   }
   .order-tray #order-items-list {
@@ -267,32 +267,35 @@
     margin-bottom: 0;
     width: 100%;
   }
-  .order-tray-footer {
+  .order-tray .order-tray-footer {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 3px dashed rgba(43,58,58,0.2);
+    flex-direction: column;
     width: 100%;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 14px;
+    border-top: 3px dashed rgba(43,58,58,0.2);
   }
   .order-tray .cart-total {
-    margin-top: 0;
-    border-top: none;
-    padding-top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
     font-size: 28px;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    gap: 12px;
   }
   .order-tray .row-checkout {
-    margin-top: 0;
-    flex: 0 1 auto;
-    min-width: 200px;
+    width: 100%;
+    margin: 0;
   }
   .order-tray button#finish-order-btn {
+    width: 100%;
     margin-top: 0;
-    padding: 12px 20px;
-    font-size: 20px;
+    padding: 14px 20px;
+    font-size: 22px;
   }
 
   /* Fixed Side Panel Layout */
@@ -342,6 +345,9 @@
     margin-top: 10px;
     padding-top: 10px;
     border-top: 3px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
   }
   .floating-order-panel .order-tray-footer {
     display: flex;
@@ -709,7 +715,7 @@
   <div id="order-items-list"></div>
   <div class="order-tray-footer">
     <div class="cart-total">
-      <span>Total: </span>
+      <span>Total:</span>
       <span id="order-total-amt">$0</span>
     </div>
     <div class="row-checkout">
