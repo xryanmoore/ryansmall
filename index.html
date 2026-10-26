@@ -242,7 +242,7 @@
   .shop-chip .name{flex:1;font-family:'Comic Neue',cursive;font-weight:700;font-size:26px;}
   .shop-chip .change-hint{font-size:18px;font-weight:700;opacity:0.75;white-space:nowrap;}
 
-  /* Embedded Bottom Mode Layout */
+  /* Embedded Bottom Mode Layout - Strict Vertical Sequence */
   .order-tray {
     border: 4px solid var(--line);
     border-radius: 20px;
@@ -258,7 +258,7 @@
   }
   .order-tray h3 {
     font-size: 26px;
-    margin: 0 0 8px 0;
+    margin: 0;
     width: 100%;
   }
   .order-tray #order-items-list {
@@ -267,32 +267,35 @@
     margin-bottom: 0;
     width: 100%;
   }
-  .order-tray-footer {
+  .order-tray .order-tray-footer {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 3px dashed rgba(43,58,58,0.2);
+    flex-direction: column;
     width: 100%;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 14px;
+    border-top: 3px dashed rgba(43,58,58,0.2);
   }
   .order-tray .cart-total {
-    margin-top: 0;
-    border-top: none;
-    padding-top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
     font-size: 28px;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    gap: 12px;
   }
   .order-tray .row-checkout {
-    margin-top: 0;
-    flex: 0 1 auto;
-    min-width: 200px;
+    width: 100%;
+    margin: 0;
   }
   .order-tray button#finish-order-btn {
+    width: 100%;
     margin-top: 0;
-    padding: 12px 20px;
-    font-size: 20px;
+    padding: 14px 20px;
+    font-size: 22px;
   }
 
   /* Fixed Side Panel Layout */
@@ -342,6 +345,9 @@
     margin-top: 10px;
     padding-top: 10px;
     border-top: 3px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
   }
   .floating-order-panel .order-tray-footer {
     display: flex;
@@ -709,7 +715,7 @@
   <div id="order-items-list"></div>
   <div class="order-tray-footer">
     <div class="cart-total">
-      <span>Total: </span>
+      <span>Total:</span>
       <span id="order-total-amt">$0</span>
     </div>
     <div class="row-checkout">
@@ -2256,215 +2262,3 @@ async function loadClassList(){
 }
 async function removeItemFromStudent(name, idx){
   const key = 'shop:student:' + name.toLowerCase();
-  try{
-    const res = await window.storage.get(key, true);
-    if(!res || !res.value) return;
-    const data = JSON.parse(res.value);
-    data.purchases = (data.purchases || []).filter((_,i)=>i!==idx);
-    data.total = data.purchases.reduce((s,p)=>s+Number(p.price),0);
-    await window.storage.set(key, JSON.stringify(data), true);
-  } catch(e){ console.error('removeItemFromStudent failed', e); notify('❌ Could not update that list'); }
-  loadClassList();
-}
-async function clearStudentList(name){
-  const ok = await confirmDialog(`Clear ${name}'s entire saved list?`, 'Clear');
-  if(!ok) return;
-  const key = 'shop:student:' + name.toLowerCase();
-  try{ await window.storage.delete(key, true); } catch(e){ console.error('clearStudentList failed', e); }
-  loadClassList();
-}
-document.getElementById('class-list').addEventListener('click', (e)=>{
-  const pillBtn = e.target.closest('.pill-x');
-  if(pillBtn){
-    const tr = pillBtn.closest('tr');
-    removeItemFromStudent(tr.dataset.name, Number(pillBtn.dataset.idx));
-    return;
-  }
-  const delBtn = e.target.closest('.del-student-btn');
-  if(delBtn){
-    const tr = delBtn.closest('tr');
-    clearStudentList(tr.dataset.name);
-  }
-});
-document.getElementById('refresh-class-btn').addEventListener('click', loadClassList);
-
-// ---------- Setup lock / PIN ----------
-function openPinModal(){
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-error').textContent = '';
-  document.getElementById('pin-overlay').classList.add('open');
-  loadSetupPin();
-  setTimeout(()=>document.getElementById('pin-input').focus(), 50);
-}
-function closePinModal(){
-  document.getElementById('pin-overlay').classList.remove('open');
-}
-async function submitPin(){
-  const entered = document.getElementById('pin-input').value.trim();
-  await loadSetupPin();
-  if(entered && entered === setupPin){
-    closePinModal();
-    unlockSetup();
-  } else {
-    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
-  }
-}
-function unlockSetup(){
-  document.getElementById('class-tab-btn').style.display = '';
-  document.getElementById('manual-entry-btn').style.display = '';
-  const setupBtn = document.getElementById('setup-tab-btn');
-  setupBtn.style.display = '';
-  setupBtn.click();
-}
-document.getElementById('pin-submit-btn').addEventListener('click', submitPin);
-document.getElementById('pin-close-btn').addEventListener('click', closePinModal);
-document.getElementById('pin-input').addEventListener('keydown', (e)=>{ if(e.key==='Enter') submitPin(); });
-document.getElementById('pin-overlay').addEventListener('click', (e)=>{ if(e.target.id==='pin-overlay') closePinModal(); });
-
-document.getElementById('save-pin-btn').addEventListener('click', async ()=>{
-  const val = document.getElementById('change-pin').value.trim();
-  if(!val){ notify('Type a new PIN first.'); return; }
-  try{
-    const result = await window.storage.set('shop:pin', val, true);
-    if(result){ setupPin = val; notify('PIN updated.'); document.getElementById('change-pin').value=''; }
-    else notify('Could not save the PIN — try again.');
-  } catch(e){ console.error(e); notify('Could not save the PIN — try again.'); }
-});
-document.getElementById('lock-setup-btn').addEventListener('click', ()=>{
-  document.getElementById('setup-tab-btn').style.display = 'none';
-  document.getElementById('class-tab-btn').style.display = 'none';
-  document.getElementById('manual-entry-btn').style.display = 'none';
-  document.getElementById('manual-entry-row').style.display = 'none';
-  document.querySelector('nav.tabs button[data-tab="sell"]').click();
-});
-
-let tapCount = 0;
-let tapTimer = null;
-document.getElementById('app-title').addEventListener('click', (e)=>{
-  const setupUnlocked = document.getElementById('setup-tab-btn').style.display !== 'none';
-  if (setupUnlocked) {
-    const target = e.currentTarget;
-    startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
-      document.getElementById('edit-app-title').textContent = newVal;
-      try{ await window.storage.set('shop:title', newVal, true); } catch(err){ console.error(err); }
-    });
-    return;
-  }
-
-  tapCount++;
-  clearTimeout(tapTimer);
-  tapTimer = setTimeout(()=>{ tapCount = 0; }, 2500);
-  if(tapCount >= 5){
-    tapCount = 0;
-    clearTimeout(tapTimer);
-    openPinModal();
-  }
-});
-
-// ---------- Branding edit (title) ----------
-document.getElementById('edit-app-title').addEventListener('click', (e)=>{
-  const target = e.currentTarget;
-  startInlineEdit(target, target.textContent, 'text', async (newVal)=>{
-    document.getElementById('app-title').textContent = newVal;
-    try{ await window.storage.set('shop:title', newVal, true); } catch(err){ console.error(err); }
-  });
-});
-
-// ---------- Settings ----------
-document.getElementById('currency-select').addEventListener('change', async (e)=>{
-  currency = e.target.value;
-  try{ await window.storage.set('shop:currency', currency, true); } catch(err){ console.error(err); }
-  renderItemEditor();
-  renderSellGrid();
-  renderCart();
-  renderOrderTray();
-});
-
-document.getElementById('compact-view-enabled').addEventListener('change', async (e)=>{
-  compactView = e.target.checked;
-  try{ await window.storage.set('shop:compactView', JSON.stringify(compactView), true); } catch(err){ console.error(err); }
-  applyCompactViewClass();
-});
-
-document.getElementById('order-position-select').addEventListener('change', async (e)=>{
-  orderPosition = e.target.value;
-  try{ await window.storage.set('shop:orderPosition', orderPosition, true); } catch(err){ console.error(err); }
-  applyOrderPositionClass();
-  renderOrderTray();
-});
-
-document.getElementById('name-mode-select').addEventListener('change', async (e)=>{
-  nameMode = e.target.value;
-  document.getElementById('name-list-setting-row').style.display = (nameMode === 'list') ? 'block' : 'none';
-  await saveNameSettings();
-  if(nameMode === 'device'){
-    await ensureAnonymousAuth();
-  }
-  renderNameInputUI();
-  handleShopperNameChange();
-});
-
-document.getElementById('save-names-btn').addEventListener('click', async ()=>{
-  const rawText = document.getElementById('name-list-input').value;
-  studentNames = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-  await saveNameSettings();
-  renderNameInputUI();
-  notify('Student name list saved.');
-});
-
-document.getElementById('budget-enabled').addEventListener('change', async (e)=>{
-  budgetEnabled = e.target.checked;
-  document.getElementById('budget-amount-row').style.display = budgetEnabled ? 'block' : 'none';
-  await saveBudget();
-  renderCart();
-});
-document.getElementById('budget-amount').addEventListener('change', async (e)=>{
-  budgetAmount = Number(e.target.value) || 0;
-  await saveBudget();
-  renderCart();
-});
-
-document.getElementById('item-limit-enabled').addEventListener('change', async (e)=>{
-  itemLimitEnabled = e.target.checked;
-  document.getElementById('item-limit-amount-row').style.display = itemLimitEnabled ? 'block' : 'none';
-  await saveBudget();
-});
-document.getElementById('item-limit-amount').addEventListener('change', async (e)=>{
-  itemLimitAmount = Number(e.target.value) || 5;
-  await saveBudget();
-});
-
-// ---------- Tabs ----------
-document.querySelectorAll('nav.tabs button').forEach(btn=>{
-  btn.addEventListener('click', async ()=>{
-    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab !== 'shop') stopScanning();
-    if(btn.dataset.tab === 'class') loadClassList();
-    if(btn.dataset.tab === 'shop') await buildItemIndex();
-    if(btn.dataset.tab === 'sell') renderSellGrid();
-    renderOrderTray();
-  });
-});
-
-// ---------- init ----------
-(async function init(){
-  document.getElementById('new-shop-image-preview').src = PLACEHOLDER_IMG;
-  document.getElementById('new-item-image-preview').src = PLACEHOLDER_IMG;
-  await loadShops();
-  await loadSetupPin();
-  await loadCurrency();
-  await loadCompactView();
-  await loadOrderPosition();
-  await loadNameSettings();
-  await loadBudget();
-  await loadBranding();
-  renderShopList();
-  renderSellShopPicker();
-  renderCart();
-})();
-</script>
-</body>
-</html>
